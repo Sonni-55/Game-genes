@@ -115,9 +115,6 @@
 
     <!-- PELILOGIIKKA -->
     <script>
-        // ==========================================
-        // KUVAKERROSTEN LATAAMINEN JA MÄÄRITTELY
-        // ==========================================
         const kuvat = {};
         const kuvaTiedostot = {
             hanta_viivat: "Untitled322_20261013221346.png",
@@ -150,6 +147,7 @@
         };
 
         let ladatutKuvat = 0;
+        let kaikkiKuvatLadattu = false;
         const kuviaYhteensa = Object.keys(kuvaTiedostot).length;
 
         function lataaKuvat(callback) {
@@ -159,15 +157,16 @@
                 kuvat[avain].onload = () => {
                     ladatutKuvat++;
                     if (ladatutKuvat === kuviaYhteensa) {
+                        kaikkiKuvatLadattu = true;
                         callback();
                     }
+                };
+                kuvat[avain].onerror = () => {
+                    console.error("Kuvaa ei löytynyt: " + kuvaTiedostot[avain]);
                 };
             }
         }
 
-        // ==========================================
-        // PELIN DATA JA TILA
-        // ==========================================
         let lauma = [];
         let valitutVanhemmat = [];
         let valittuElainInfo = null;
@@ -209,9 +208,6 @@
             else { olento.knownGenotype.N1 = "N"; olento.knownGenotype.N2 = "n"; }
         }
 
-        // ==========================================
-        // LABORATORIO JA UI
-        // ==========================================
         function paivitaLaumaUI() {
             const alue = document.getElementById("lauma-alue");
             alue.innerHTML = "";
@@ -317,19 +313,43 @@
             let pentuGenetics = { B1: lapsiB[0], B2: lapsiB[1], O1: lapsiO[0], O2: lapsiO[1], N1: lapsiN[0], N2: lapsiN[1] };
             let uusiPentu = luoOlento("Pentu-" + (lauma.length + 1), Math.random() < 0.5 ? "♂" : "♀", pentuGenetics, "pentu", isa.nimi, ema.nimi);
 
-            tarkistaKantajuus(isa, uusiPentu.realGenotype); tarkistaKantajuus(ema, uusiPentu.realGenotype);
+            // LOGIIKAN PÄIVITYS: Tarkistetaan molemminpuolisesti vanhempien ja pennun alleelit
+            paivitaGeeniPaattely(isa, ema, uusiPentu);
+
             lauma.push(uusiPentu); valitutVanhemmat = [];
             document.getElementById("breed-btn").disabled = true;
             document.getElementById("valitut-teksti").innerText = "Valittu: -";
-            aktiivoiJalostustila(); // Poistaa jalostustilan päältä onnistuneesti
+            aktiivoiJalostustila();
             paivitaLaumaUI();
             alustaTarhaOlennot();
         }
 
-        function tarkistaKantajuus(vanhempi, pentuGenes) {
-            if ((pentuGenes.B1 === "b" || pentuGenes.B2 === "b") && (vanhempi.realGenotype.B1 === "b" || vanhempi.realGenotype.B2 === "b") && vanhempi.knownGenotype.B2 === "_") vanhempi.knownGenotype.B2 = "b";
-            if ((pentuGenes.B1 === "b1" || pentuGenes.B2 === "b1") && (vanhempi.realGenotype.B1 === "b1" || vanhempi.realGenotype.B2 === "b1") && vanhempi.knownGenotype.B2 === "_") vanhempi.knownGenotype.B2 = "b1";
-            päivitäKnownGenotype(vanhempi);
+        function paivitaGeeniPaattely(isa, ema, pentu) {
+            [isa, ema].forEach(vanhempi => {
+                let vReal = vanhempi.realGenotype;
+                let vKnown = vanhempi.knownGenotype;
+                let pReal = pentu.realGenotype;
+                let pKnown = pentu.knownGenotype;
+
+                // Jos pentu on homotsygootti oo, vanhemman ON PAKKO olla Oo
+                if (pReal.O1 === "o" && pReal.O2 === "o") {
+                    if (vReal.O1 === "O" || vReal.O2 === "O") {
+                        vKnown.O1 = "O";
+                        vKnown.O2 = "o";
+                    }
+                }
+
+                // Jos vanhempi on oo, pennun O_ ON PAKKO olla Oo
+                let isaOO = isa.realGenotype.O1 === "o" && isa.realGenotype.O2 === "o";
+                let emaOO = ema.realGenotype.O1 === "o" && ema.realGenotype.O2 === "o";
+                if ((isaOO || emaOO) && (pReal.O1 === "O" || pReal.O2 === "O")) {
+                    pKnown.O1 = "O";
+                    pKnown.O2 = "o";
+                }
+
+                päivitäKnownGenotype(vanhempi);
+                päivitäKnownGenotype(pentu);
+            });
         }
 
         function seuraavaPaivaRollover() {
@@ -344,9 +364,11 @@
         function tallennaPeli() { localStorage.setItem("laji_lauma", JSON.stringify(lauma)); }
 
         // ==========================================
-        // DYNAMINEN PIIRTÄMINEN (KORJATTU VÄRITELY)
+        // DYNAMINEN PIIRTÄMINEN (TURVATARKISTUKSISSA)
         // ==========================================
         function piirraKerrokset(ctx, elain, asento, runkoY, jalkaKulma) {
+            if (!kaikkiKuvatLadattu) return; // Estetään piirtäminen ennen kuvalatausta!
+
             let turkinVari = "#333333";
             if (elain.knownGenotype.B1 === "b") turkinVari = "#8b5a2b";
             if (elain.knownGenotype.B1 === "b1") turkinVari = "#d3a27f";
@@ -355,16 +377,15 @@
             let silmanVari = elain.silmienVari || "#2ecc71";
 
             function piirraVariJaViiva(variImg, viivaImg, valittuVari) {
-                if (!variImg || !variImg.complete || !viivaImg || !viivaImg.complete) return;
+                if (!variImg || !variImg.complete || variImg.naturalWidth === 0) return;
+                if (!viivaImg || !viivaImg.complete || viivaImg.naturalWidth === 0) return;
+
                 ctx.save();
-                // 1. Piirretään väripohja
                 ctx.drawImage(variImg, -200, -200);
-                // 2. Värjätään väripohja
                 ctx.globalCompositeOperation = "source-in";
                 ctx.fillStyle = valittuVari;
                 ctx.fillRect(-200, -200, 400, 400);
                 ctx.restore();
-                // 3. Ääriviivat piirretään puhtaasti päällle
                 ctx.globalCompositeOperation = "source-over";
                 ctx.drawImage(viivaImg, -200, -200);
             }
@@ -381,21 +402,23 @@
             piirraVariJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
             piirraVariJaViiva(kuvat.nena_vari, kuvat.nena_viivat, "#444444");
 
-            if (kuvat.silma_vari && kuvat.silma_vari.complete && kuvat.silma_viivat && kuvat.silma_viivat.complete) {
+            if (kuvat.silma_vari && kuvat.silma_vari.complete && kuvat.silma_vari.naturalWidth !== 0) {
                 ctx.save();
                 ctx.drawImage(kuvat.silma_vari, -200, -200);
                 ctx.globalCompositeOperation = "source-in";
                 ctx.fillStyle = silmanVari;
                 ctx.fillRect(-200, -200, 400, 400);
                 ctx.restore();
-                ctx.drawImage(kuvat.silma_viivat, -200, -200);
+                if (kuvat.silma_viivat && kuvat.silma_viivat.complete) {
+                    ctx.drawImage(kuvat.silma_viivat, -200, -200);
+                }
             }
-            if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) {
+            if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete && kuvat.pupilli_vari.naturalWidth !== 0) {
                 ctx.drawImage(kuvat.pupilli_vari, -200, -200);
             }
 
             piirraVariJaViiva(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
-            if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) {
+            if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete && kuvat.korva_sisa_vari.naturalWidth !== 0) {
                 ctx.drawImage(kuvat.korva_sisa_vari, -200, -200);
             }
             ctx.restore();
@@ -404,14 +427,11 @@
             piirraVariJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
         }
 
-        // ==========================================
-        // TARHA-OLENTO LUOKKA (KAUKAISENPI KUVAKULMA)
-        // ==========================================
         class TarhaOlento {
             constructor(data) {
                 this.data = data;
                 this.x = Math.random() * 900 + 50;
-                this.y = 360; // Alempana maassa yläviistoperspektiivissä
+                this.y = 360;
                 this.vx = (Math.random() - 0.5) * 1.0;
                 this.asento = "seisoo";
                 this.ajastin = Math.random() * 200 + 50;
@@ -439,7 +459,6 @@
                 ctx.translate(this.x, this.y);
                 if (this.vx < 0) ctx.scale(-1, 1);
                 
-                // Pienennetty mittakaava, jotta hahmot näkyvät kauempaa ja mahtuvat samaan aikaan ruudulle
                 if (this.data.ika === "pentu") {
                     ctx.scale(0.25, 0.25);
                 } else {
@@ -466,7 +485,6 @@
             const ctx = canvas.getContext("2d");
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Ruohikkopohja
             ctx.fillStyle = "#27ae60"; 
             ctx.fillRect(0, 380, canvas.width, 120);
             
@@ -506,4 +524,4 @@
         };
     </script>
 </body>
-</html>
+</html> 
