@@ -271,7 +271,7 @@
         function tallennaPeli() { localStorage.setItem("laji_lauma", JSON.stringify(lauma)); }
 
         // ==========================================
-        // DYNAMISEN PIIRTÄMISEN YDINMOOTTORI
+        // DYNAMISEN PIIRTÄMISEN YDINMOOTTORI (KAIKKI OSAT)
         // ==========================================
         function piirraKerrokset(ctx, elain, asento, runkoY, jalkaKulma) {
             let turkinVari = "#333333";
@@ -279,8 +279,10 @@
             if (elain.knownGenotype.B1 === "b1") turkinVari = "#d3a27f";
             if (elain.knownGenotype.O1 === "O") turkinVari = "#e67e22";
 
+            let silmanVari = elain.silmienVari || "#2ecc71";
+
             function piirraVariJaViiva(variImg, viivaImg, valittuVari) {
-                if (!variImg.complete || !viivaImg.complete) return;
+                if (!variImg || !variImg.complete || !viivaImg || !viivaImg.complete) return;
                 ctx.save();
                 ctx.drawImage(variImg, -200, -200);
                 ctx.globalCompositeOperation = "source-in";
@@ -291,16 +293,54 @@
                 ctx.drawImage(viivaImg, -200, -200);
             }
 
-            // Korvat, häntä ja keho voidaan piirtää tähän kutsumalla piirraVariJaViiva-funktiota
-            if (kuvat.kauempi_korva_vari && kuvat.kauempi_korva_viivat) {
-                piirraVariJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
+            // 1. Kauempi korva
+            piirraVariJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
+
+            // 2. Häntä
+            piirraVariJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
+
+            // 3. Kauempi takajalka
+            piirraVariJaViiva(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
+
+            // 4. Taaempi etujalka
+            piirraVariJaViiva(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
+
+            // 5. Keho ja kaula (mukana mahdollinen pomppu/liike)
+            ctx.save();
+            ctx.translate(0, runkoY || 0);
+            piirraVariJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
+            piirraVariJaViiva(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
+
+            // Pää ja kasvojen osat
+            piirraVariJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
+            piirraVariJaViiva(kuvat.nena_vari, kuvat.nena_viivat, "#444444");
+
+            // Silmät
+            if (kuvat.silma_vari && kuvat.silma_vari.complete && kuvat.silma_viivat && kuvat.silma_viivat.complete) {
+                ctx.save();
+                ctx.drawImage(kuvat.silma_vari, -200, -200);
+                ctx.globalCompositeOperation = "source-in";
+                ctx.fillStyle = silmanVari;
+                ctx.fillRect(-200, -200, 400, 400);
+                ctx.restore();
+                ctx.drawImage(kuvat.silma_viivat, -200, -200);
             }
-            if (kuvat.hanta_vari && kuvat.hanta_viivat) {
-                piirraVariJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
+            if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) {
+                ctx.drawImage(kuvat.pupilli_vari, -200, -200);
             }
-            if (kuvat.keho_vari && kuvat.keho_viivat) {
-                piirraVariJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
+
+            // Lähempi korva & sisäosa
+            piirraVariJaViiva(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
+            if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) {
+                ctx.drawImage(kuvat.korva_sisa_vari, -200, -200);
             }
+            ctx.restore(); // Palautetaan kehon siirtymä
+
+            // 6. Lähempi takajalka
+            piirraVariJaViiva(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
+
+            // 7. Lähempi etujalka
+            piirraVariJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
         }
 
         // ==========================================
