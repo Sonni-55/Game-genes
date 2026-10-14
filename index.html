@@ -560,8 +560,9 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti.");
         }
 
-        function tallennaPeli() { localStorage.setItem("laji_lauma_v11", JSON.stringify(lauma)); }
+        function tallennaPeli() { localStorage.setItem("laji_lauma_v12", JSON.stringify(lauma)); }
 
+        /* KORJATTU PIIRTOJÄRJESTYS: VÄRI MASKAAN -> ÄÄRIVIIVA ILMAN MASKIA PÄÄLLE */
         function piirraKerrokset(ctx, elain, flipX, liikeAnimaatio = 0, asento = "seisoo") {
             if (!kaikkiKuvatLadattu) return;
 
@@ -592,7 +593,7 @@
             const ox = -w / 2;
             const oy = -h / 2;
 
-            function piirraOsaJaViiva(variImg, viivaImg, vari) {
+            function piirraSijaintiOsa(variImg, viivaImg, vari) {
                 if (variImg && variImg.complete && vari) {
                     ctx.save();
                     ctx.globalCompositeOperation = "source-over";
@@ -620,39 +621,46 @@
             ctx.translate(0, kehoLasku);
             ctx.rotate(kehoKallistus);
 
-            piirraOsaJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
+            // 1. Häntä & kauimmat jalat
+            piirraSijaintiOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             ctx.save();
             ctx.translate(ox + 1300, oy + 700); ctx.rotate(takajalkaKulma); ctx.translate(-(ox + 1300), -(oy + 700));
-            piirraOsaJaViiva(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
+            piirraSijaintiOsa(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
             ctx.restore();
 
-            piirraOsaJaViiva(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
-            piirraOsaJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
+            // 2. Kaula/rinta
+            piirraSijaintiOsa(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
 
+            // 3. Keho
+            piirraSijaintiOsa(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
+
+            // 4. Lähimmät jalat
             ctx.save();
             ctx.translate(ox + 800, oy + 700); ctx.rotate(etujalkaKulma); ctx.translate(-(ox + 800), -(oy + 700));
-            piirraOsaJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
+            piirraSijaintiOsa(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
             ctx.restore();
 
             ctx.save();
             ctx.translate(ox + 1400, oy + 700); ctx.rotate(-takajalkaKulma); ctx.translate(-(ox + 1400), -(oy + 700));
-            piirraOsaJaViiva(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
+            piirraSijaintiOsa(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
             ctx.restore();
 
             ctx.save();
             ctx.translate(ox + 700, oy + 700); ctx.rotate(-etujalkaKulma); ctx.translate(-(ox + 700), -(oy + 700));
-            piirraOsaJaViiva(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
+            piirraSijaintiOsa(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
             ctx.restore();
 
-            piirraOsaJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
+            // 5. Kauempi korva
+            piirraSijaintiOsa(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
 
+            // 6. Pää, silmät, nenä & lähempi korva
             ctx.save();
             ctx.translate(ox + 600, oy + 400); ctx.rotate(paaKääntö); ctx.translate(-(ox + 600), -(oy + 400));
-            piirraOsaJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
-            piirraOsaJaViiva(kuvat.nena_vari, kuvat.nena_viivat, "#222222");
-            piirraOsaJaViiva(kuvat.silma_vari, kuvat.silma_viivat, elain.silmienVari || "#2ecc71");
+            piirraSijaintiOsa(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
+            piirraSijaintiOsa(kuvat.nena_vari, kuvat.nena_viivat, "#222222");
+            piirraSijaintiOsa(kuvat.silma_vari, kuvat.silma_viivat, elain.silmienVari || "#2ecc71");
             if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) ctx.drawImage(kuvat.pupilli_vari, ox, oy, w, h);
-            piirraOsaJaViiva(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
+            piirraSijaintiOsa(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
             if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) ctx.drawImage(kuvat.korva_sisa_vari, ox, oy, w, h);
             ctx.restore();
 
@@ -702,7 +710,23 @@
             }
         }
 
-        function alustaTarhaOlennot() { tarhaOlennot = lauma.map(elain => new TarhaOlento(elain)); }
+        function alustaTarhaOlennot() { 
+            tarhaOlennot = lauma.map(elain => new TarhaOlento(elain)); 
+        }
+
+        function piirraTausta(ctx, w, h) {
+            let grad = ctx.createLinearGradient(0, 0, 0, 220);
+            grad.addColorStop(0, "#1c2833"); grad.addColorStop(1, "#5d6d7e");
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, w, 220);
+
+            ctx.fillStyle = "#27ae60"; ctx.fillRect(0, 220, w, h - 220);
+
+            ctx.fillStyle = "#e74c3c"; ctx.fillRect(100, 320, 70, 45);
+            ctx.fillStyle = "#f1c40f"; ctx.fillRect(112, 332, 45, 20);
+
+            ctx.fillStyle = "#bdc3c7"; ctx.beginPath(); ctx.arc(260, 370, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc(260, 370, 9, 0, Math.PI * 2); ctx.fill();
+        }
 
         function paivitaTarhaLoop() {
             const canvas = document.getElementById("tarha-canvas");
@@ -717,15 +741,7 @@
             }
 
             ctx.clearRect(0, 0, w, h);
-
-            let grad = ctx.createLinearGradient(0, 0, 0, 200);
-            grad.addColorStop(0, "#1c2833"); grad.addColorStop(1, "#5d6d7e");
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, w, 200);
-
-            ctx.fillStyle = "#27ae60"; ctx.fillRect(0, 200, w, h - 200);
-
-            ctx.fillStyle = "#e74c3c"; ctx.fillRect(100, 320, 70, 45);
-            ctx.fillStyle = "#f1c40f"; ctx.fillRect(112, 332, 45, 20);
+            piirraTausta(ctx, w, h);
 
             tarhaOlennot.sort((a, b) => a.y - b.y);
             tarhaOlennot.forEach(olento => { olento.paivita(w, h); olento.piirra(ctx); });
@@ -757,12 +773,11 @@
         }
 
         function lataaPeli() {
-            let tallennettu = localStorage.getItem("laji_lauma_v11");
+            let tallennettu = localStorage.getItem("laji_lauma_v12");
             if (tallennettu) {
                 lauma = JSON.parse(tallennettu);
             }
             
-            // Jos lauma on tyhjä, luodaan aloituspariskunta
             if (!lauma || lauma.length === 0) {
                 let uros = luoOlento("Kanta-Uros", "♂", { B1:"B", B2:"b", O1:"O", O2:"o", N1:"N", N2:"n" }, "aikuinen");
                 let ema = luoOlento("Kanta-Emä", "♀", { B1:"b", B2:"b", O1:"o", O2:"o", N1:"N", N2:"n" }, "aikuinen");
