@@ -26,7 +26,6 @@
         .lab-container { display: flex; gap: 20px; flex-wrap: wrap; }
         .main-panel { flex: 1; min-width: 320px; }
         
-        /* ISOT LEVEÄT KORTIT JOTKA LAAJENEVAT KLIKATESSA */
         .lauma-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .elain-kortti {
             background-color: #222232;
@@ -58,7 +57,6 @@
             margin-top: 5px;
         }
 
-        /* JALOSTUSSIVUN ASETTELU */
         .breed-container { display: flex; gap: 20px; justify-content: space-between; flex-wrap: wrap; }
         .breed-column { flex: 1; background: #222232; padding: 20px; border-radius: 8px; border: 2px solid #3a3a52; min-width: 280px; }
         
@@ -84,7 +82,6 @@
         .notification-box { background: #1e1e2d; border: 1px solid #555; padding: 10px; border-radius: 6px; max-height: 250px; overflow-y: auto; font-size: 13px; margin-top: 15px; }
         .notif-item { margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
 
-        /* RESPONSIIVINEN TARHA */
         #tarha-canvas {
             background-color: #27ae60;
             border: 4px solid #3a3a52;
@@ -141,7 +138,6 @@
     <div id="jalostus-sivu" class="page">
         <h2>Jalostusasema & Sukutaulupohjainen Sisäsiittoisuus</h2>
         
-        <!-- YLÄOSA: VALITUT VANHEMMAT JA RISTEYTYS -->
         <div class="breed-center-top">
             <div class="vanhempi-box">
                 <canvas id="iso-valittu-uros" width="90" height="90" style="background:#111; border-radius:6px;"></canvas>
@@ -170,7 +166,6 @@
             <b>Mahdolliset pentuvärit / fenotyypit:</b> Valitse vanhemmat nähdäksesi ennusteen.
         </div>
 
-        <!-- ALAOSA: EHDOKKAAT -->
         <div class="breed-container">
             <div class="breed-column">
                 <h3>Urokset (♂)</h3>
@@ -381,7 +376,6 @@
                 if (elain.sukupuoli === "♂" && valittuUros?.id === elain.id) kortti.classList.add("selected");
                 if (elain.sukupuoli === "♀" && valittuNaaras?.id === elain.id) kortti.classList.add("selected");
 
-                let g = elain.realGenotype;
                 kortti.innerHTML = `
                     <div class="kortti-header">
                         <canvas id="canvas-breed-${elain.id}" width="70" height="70" style="background:#1a1a24; border-radius:6px;"></canvas>
@@ -566,9 +560,8 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti.");
         }
 
-        function tallennaPeli() { localStorage.setItem("laji_lauma_v10", JSON.stringify(lauma)); }
+        function tallennaPeli() { localStorage.setItem("laji_lauma_v11", JSON.stringify(lauma)); }
 
-        /* TARKKA PIIRTO ERIKSEEN VÄRILLÄ JA ÄÄRIVIIVOILLA (EI MASKIVIRHEITÄ) */
         function piirraKerrokset(ctx, elain, flipX, liikeAnimaatio = 0, asento = "seisoo") {
             if (!kaikkiKuvatLadattu) return;
 
@@ -627,20 +620,15 @@
             ctx.translate(0, kehoLasku);
             ctx.rotate(kehoKallistus);
 
-            // JÄRJESTYS: 1. Häntä & kauimmat jalat
             piirraOsaJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             ctx.save();
             ctx.translate(ox + 1300, oy + 700); ctx.rotate(takajalkaKulma); ctx.translate(-(ox + 1300), -(oy + 700));
             piirraOsaJaViiva(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
             ctx.restore();
 
-            // 2. Kaula/rinta
             piirraOsaJaViiva(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
-
-            // 3. Keho
             piirraOsaJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
 
-            // 4. Lähimmät jalat
             ctx.save();
             ctx.translate(ox + 800, oy + 700); ctx.rotate(etujalkaKulma); ctx.translate(-(ox + 800), -(oy + 700));
             piirraOsaJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
@@ -656,10 +644,8 @@
             piirraOsaJaViiva(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
             ctx.restore();
 
-            // 5. Kauempi korva
             piirraOsaJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
 
-            // 6. Pää, silmät, nenä, lähempi korva
             ctx.save();
             ctx.translate(ox + 600, oy + 400); ctx.rotate(paaKääntö); ctx.translate(-(ox + 600), -(oy + 400));
             piirraOsaJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
@@ -723,7 +709,6 @@
             if (!canvas) return;
             const ctx = canvas.getContext("2d");
             
-            // Skaalataan canvas dynaamisesti ikkunan mukaan
             let w = Math.min(window.innerWidth - 40, 1100);
             let h = window.innerWidth < 768 ? 450 : 550;
             if (canvas.width !== w || canvas.height !== h) {
@@ -733,14 +718,12 @@
 
             ctx.clearRect(0, 0, w, h);
 
-            // Tausta ja nurmikko
             let grad = ctx.createLinearGradient(0, 0, 0, 200);
             grad.addColorStop(0, "#1c2833"); grad.addColorStop(1, "#5d6d7e");
             ctx.fillStyle = grad; ctx.fillRect(0, 0, w, 200);
 
             ctx.fillStyle = "#27ae60"; ctx.fillRect(0, 200, w, h - 200);
 
-            // Koristeet
             ctx.fillStyle = "#e74c3c"; ctx.fillRect(100, 320, 70, 45);
             ctx.fillStyle = "#f1c40f"; ctx.fillRect(112, 332, 45, 20);
 
@@ -774,12 +757,15 @@
         }
 
         function lataaPeli() {
-            let tallennettu = localStorage.getItem("laji_lauma_v10");
+            let tallennettu = localStorage.getItem("laji_lauma_v11");
             if (tallennettu) {
                 lauma = JSON.parse(tallennettu);
-            } else {
-                let uros = luoOlento("Kanta-Uros", "♂", { B1:"B", B2:"b", O1:"o", O2:"o", N1:"N", N2:"n" }, "aikuinen");
-                let ema = luoOlento("Kanta-Emä", "♀", { B1:"b", B2:"b1", O1:"O", O2:"o", N1:"N", N2:"n" }, "aikuinen");
+            }
+            
+            // Jos lauma on tyhjä, luodaan aloituspariskunta
+            if (!lauma || lauma.length === 0) {
+                let uros = luoOlento("Kanta-Uros", "♂", { B1:"B", B2:"b", O1:"O", O2:"o", N1:"N", N2:"n" }, "aikuinen");
+                let ema = luoOlento("Kanta-Emä", "♀", { B1:"b", B2:"b", O1:"o", O2:"o", N1:"N", N2:"n" }, "aikuinen");
                 lauma.push(uros, ema);
             }
             paivitaKaikkiUI();
