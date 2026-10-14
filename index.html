@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+       <!DOCTYPE html>
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
@@ -66,7 +66,6 @@
             margin-top: 6px;
         }
 
-        /* JALOSTUSSIVU: UROKSET OIKEALLA, NAARAAT VASEMMALLA VIEREKKÄIN */
         .breed-layout { display: flex; gap: 15px; flex-wrap: wrap; }
         .breed-column { 
             flex: 1; 
@@ -191,8 +190,8 @@
                     <div id="geenit-valittu-naaras" style="font-size:11px; color:#aaa;">Geenit: -</div>
                 </div>
                 <div>
-                    <div id="inbreeding-varoitus" style="color: #e74c3c; font-weight: bold; font-size: 11px;"></div>
-                    <button id="breed-btn" class="action-btn" disabled onclick="suoritaRisteytys()" style="width: 140px;">RISTEYTÄ</button>
+                    <div id="inbreeding-varoitus" style="color: #e74c3c; font-weight: bold; font-size: 11px; margin-bottom: 4px;"></div>
+                    <button id="breed-btn" class="action-btn" disabled onclick="suoritaRisteytys()" style="width: 140px; margin-top:0;">RISTEYTÄ</button>
                 </div>
                 <div>
                     <div id="nimi-valittu-uros" style="font-weight:bold; color:#4a4af5;">Valitse Uros (♂)</div>
@@ -202,12 +201,10 @@
         </div>
 
         <div class="breed-layout">
-            <!-- NAARAAT VASEMMALLA -->
             <div class="breed-column">
                 <h3 style="margin-bottom:8px; color:#e74c3c; font-size:14px;">Naaraat (♀)</h3>
                 <div id="jalostus-naaraat" class="breed-scroll-area"></div>
             </div>
-            <!-- UROKSET OIKEALLA -->
             <div class="breed-column">
                 <h3 style="margin-bottom:8px; color:#4a4af5; font-size:14px;">Urokset (♂)</h3>
                 <div id="jalostus-koiraat" class="breed-scroll-area"></div>
@@ -402,21 +399,42 @@
                 skinColor: "#ffb6c1",
                 calicoSpots: calicoSpots,
                 isaNimi: isaObj ? isaObj.nimi : "Luonto",
-                emaNimi: emaObj ? emaObj.nimi : "Luonto"
+                emaNimi: emaObj ? emaObj.nimi : "Luonto",
+                isaId: isaObj ? isaObj.id : null,
+                emaId: emaObj ? emaObj.id : null
             };
 
             tarkistaJaLisaaAlleelit(uusi);
             return uusi;
         }
 
-        // Fenotyypin mukainen genotyypin näyttö (piilottaa B:n jos ei näy fenotyypissä)
+        // Fenotyypin mukainen genotyypin näyttö (piilottaa B:n tai D:n toisen alleelin jos se ei näy ulospäin)
         function haeFenotyyppiGeenit(elain) {
             let g = elain.realGenotype;
             let onkoPunainen = (g.N === "nn" || g.O === "oo");
-            let bOsa = onkoPunainen ? "__" : g.B;
+            let bOsa = onkoPunainen ? "__" : (g.B[0] + "_");
             let nOsa = g.N;
             let dOsa = g.D.includes("d") ? g.D : (g.D[0] + "_");
             return `B:${bOsa} O:${g.O} N:${nOsa} D:${dOsa}`;
+        }
+
+        // Sisäsiittoisuuslaskuri (Inbreeding Coeff -yksinkertaistus)
+        function laskeSisaisiittoisuus(uros, naaras) {
+            if (!uros || !naaras) return { prosentti: 0, teksti: "" };
+            let yhteisetVanhemmat = 0;
+            if (uros.isaId && (uros.isaId === naaras.isaId || uros.isaId === naaras.emaId)) yhteisetVanhemmat++;
+            if (uros.emaId && (uros.emaId === naaras.isaId || uros.emaId === naaras.emaId)) yhteisetVanhemmat++;
+            
+            let prosentti = yhteisetVanhemmat * 25; // Karkea arvio sukulaisuudesta
+            if (uros.id === naaras.isaId || uros.id === naaras.emaId || naaras.id === uros.isaId || naaras.id === uros.emaId) {
+                prosentti = 50;
+            }
+            
+            let teksti = "";
+            if (prosentti > 0) {
+                teksti = `⚠️ Sisäsiittoisuusriski: ${prosentti}%`;
+            }
+            return { prosentti, teksti };
         }
 
         function paivitaKaikkiUI() {
@@ -425,9 +443,9 @@
             paivitaJalostusUI();
             paivitaGeenikirjaUI();
             alustaTarhaOlennot();
-            localStorage.setItem("laji_lauma_v28", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v28", raha);
-            localStorage.setItem("laji_geenit_v28", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_lauma_v29", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v29", raha);
+            localStorage.setItem("laji_geenit_v29", JSON.stringify(loytyneetAlleelit));
         }
 
         function paivitaLaumaUI() {
@@ -513,7 +531,6 @@
 
             koiraat.innerHTML = ""; naaraat.innerHTML = "";
 
-            // NAARAAT (Vasemmalla)
             lauma.filter(e => e.sukupuoli === "♀").forEach(elain => {
                 const row = document.createElement("div");
                 row.className = "breed-item-row" + (valittuNaaras?.id === elain.id ? " selected" : "");
@@ -533,12 +550,11 @@
                     if(c) {
                         const cx = c.getContext("2d");
                         cx.translate(25, 22);
-                        piirraKerrokset(cx, elain, true, 0, "seisoo", 0.025); // Peilattu katsomaan oikealle uroksia kohti!
+                        piirraKerrokset(cx, elain, true, 0, "seisoo", 0.025);
                     }
                 }, 50);
             });
 
-            // UROKSET (Oikealla)
             lauma.filter(e => e.sukupuoli === "♂").forEach(elain => {
                 const row = document.createElement("div");
                 row.className = "breed-item-row" + (valittuUros?.id === elain.id ? " selected" : "");
@@ -562,6 +578,9 @@
                     }
                 }, 50);
             });
+
+            let inbreedingInfo = laskeSisaisiittoisuus(valittuUros, valittuNaaras);
+            document.getElementById("inbreeding-varoitus").innerText = inbreedingInfo.teksti;
 
             document.getElementById("breed-btn").disabled = !(valittuUros && valittuNaaras);
             document.getElementById("nimi-valittu-uros").innerText = valittuUros ? valittuUros.nimi : "Valitse Uros (♂)";
@@ -650,7 +669,6 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti.");
         }
 
-        /* PIIRTOKERROSLOGIIKKA + KORJATUT SILMÄT, PUPILLIT JA TASSULIIKE */
         function piirraKerrokset(ctx, elain, flipX, liike = 0, asento = "seisoo", scale = 0.07) {
             if (!kaikkiKuvatLadattu) return;
 
@@ -685,7 +703,7 @@
             }
 
             let kehoOffsetY = (asento === "makaa") ? 250 : (asento === "istuu" ? 130 : 0);
-            let jalkaKulma = (asento === "seisoo") ? Math.sin(liike) * 0.12 : 0; // Pieni, siisti eteen/taakse-liike
+            let jalkaKulma = (asento === "seisoo") ? Math.sin(liike) * 0.12 : 0;
 
             ctx.save();
             ctx.translate(0, kehoOffsetY);
@@ -711,7 +729,6 @@
             piirraOsa(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
             piirraOsa(kuvat.nena_vari, kuvat.nena_viivat, elain.skinColor || "#ffb6c1");
             
-            // SILMÄ & VARMA PUPILLI
             let onkoVastasyntynyt = (elain.ika === "pentu" && elain.ikaPaivat === 0);
             if (!onkoVastasyntynyt) {
                 piirraOsa(kuvat.silma_vari, kuvat.silma_viivat, elain.eyeColor || "#2ecc71");
@@ -739,7 +756,7 @@
                 this.data = data;
                 this.x = Math.random() * 600 + 200;
                 this.y = Math.random() * 150 + 320;
-                this.vx = (Math.random() < 0.5 ? -1 : 1) * 1.5;
+                this.vx = (Math.random() < 0.5 ? -1 : 1) * 1.0; // Pienennetty nopeutta hieman puhelinkäyttöä varten
                 this.liike = Math.random() * 100;
                 this.silitys = 0;
             }
@@ -749,7 +766,7 @@
                 if (this.silitys > 0) { this.silitys--; return; }
 
                 this.x += this.vx;
-                this.liike += 0.15;
+                this.liike += 0.1;
                 if (this.x < 100 || this.x > w - 100) this.vx *= -1;
             }
 
@@ -762,8 +779,8 @@
                 let scale = 0.085;
                 let asento = "seisoo";
 
-                if (this.data.ika === "pentu") {
-                    if (this.data.ikaPaivat === 3) scale = 0.065;
+                if (this.data.ika === "pentu" && this.data.ikaPaivat === 3) {
+                    scale = 0.065;
                 }
 
                 piirraKerrokset(ctx, this.data, flip, this.silitys > 0 ? 0 : this.liike, asento, scale);
@@ -796,7 +813,15 @@
             ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(300, 320, 12, 0, Math.PI * 2); ctx.fill();
         }
 
-        function paivitaTarhaLoop() {
+        // Optimoitu renderöintisilmukka (rajoitettu framerate puhelimen akun ja lagin säästämiseksi)
+        let viimeinenPaivitys = 0;
+        function paivitaTarhaLoop(timestamp) {
+            if (timestamp - viimeinenPaivitys < 33) { // Noin 30 FPS puhelimelle
+                tarhaAnimaatioId = requestAnimationFrame(paivitaTarhaLoop);
+                return;
+            }
+            viimeinenPaivitys = timestamp;
+
             const canvas = document.getElementById("tarha-canvas");
             if (!canvas) return;
             const ctx = canvas.getContext("2d");
@@ -845,7 +870,7 @@
 
             if (id === 'tarha-sivu') {
                 alustaTarhaOlennot();
-                if (!tarhaAnimaatioId) paivitaTarhaLoop();
+                if (!tarhaAnimaatioId) tarhaAnimaatioId = requestAnimationFrame(paivitaTarhaLoop);
             } else {
                 if (tarhaAnimaatioId) { cancelAnimationFrame(tarhaAnimaatioId); tarhaAnimaatioId = null; }
                 if (id === 'jalostus-sivu') paivitaJalostusUI();
@@ -854,9 +879,9 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v28");
-            let tRaha = localStorage.getItem("laji_raha_v28");
-            let tGeenit = localStorage.getItem("laji_geenit_v28");
+            let tLauma = localStorage.getItem("laji_lauma_v29");
+            let tRaha = localStorage.getItem("laji_raha_v29");
+            let tGeenit = localStorage.getItem("laji_geenit_v29");
 
             if (tLauma) lauma = JSON.parse(tLauma);
             if (tRaha) raha = parseInt(tRaha);
