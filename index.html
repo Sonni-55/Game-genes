@@ -2,6 +2,7 @@
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Genetics Lab & Pasture</title>
     <style>
         body {
@@ -264,19 +265,66 @@
             });
         }
 
-        function arvoAlleeli(a1, a2) { return Math.random() < 0.5 ? a1 : a2; }
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 139, g: 69, b: 19 };
+        }
 
-        function luoOlento(nimi, sukupuoli, genes, ika, isaObj = null, emaObj = null) {
-            let realG = { ...genes };
-            if (isaObj && emaObj) {
-                realG = {
-                    B1: arvoAlleeli(isaObj.realGenotype.B1, isaObj.realGenotype.B2),
-                    B2: arvoAlleeli(emaObj.realGenotype.B1, emaObj.realGenotype.B2),
-                    O1: arvoAlleeli(isaObj.realGenotype.O1, isaObj.realGenotype.O2),
-                    O2: arvoAlleeli(emaObj.realGenotype.O1, emaObj.realGenotype.O2),
-                    N1: arvoAlleeli(isaObj.realGenotype.N1, isaObj.realGenotype.N2),
-                    N2: arvoAlleeli(emaObj.realGenotype.N1, emaObj.realGenotype.N2)
-                };
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, "0")).join("").toUpperCase();
+        }
+
+        function arvoVariVanhemmilta(color1, color2) {
+            const rgb1 = hexToRgb(color1);
+            const rgb2 = hexToRgb(color2);
+            const factor = Math.random();
+            const r = rgb1.r + factor * (rgb2.r - rgb1.r);
+            const g = rgb1.g + factor * (rgb2.g - rgb1.g);
+            const b = rgb1.b + factor * (rgb2.b - rgb1.b);
+            return rgbToHex(r, g, b);
+        }
+
+        function arvoAlleeli(genotyyppi) {
+            let alleelit = [];
+            if (genotyyppi === "BB") alleelit = ["B", "B"];
+            else if (genotyyppi === "Bb") alleelit = ["B", "b"];
+            else if (genotyyppi === "Bb1") alleelit = ["B", "b1"];
+            else if (genotyyppi === "bb") alleelit = ["b", "b"];
+            else if (genotyyppi === "bb1") alleelit = ["b", "b1"];
+            else if (genotyyppi === "b1b1") alleelit = ["b1", "b1"];
+            else if (genotyyppi === "OO") alleelit = ["O", "O"];
+            else if (genotyyppi === "Oo") alleelit = ["O", "o"];
+            else if (genotyyppi === "oo") alleelit = ["o", "o"];
+            else if (genotyyppi === "NN") alleelit = ["N", "N"];
+            else if (genotyyppi === "Nn") alleelit = ["N", "n"];
+            else if (genotyyppi === "nn") alleelit = ["n", "n"];
+            else if (genotyyppi === "DD") alleelit = ["D", "D"];
+            else if (genotyyppi === "Dd") alleelit = ["D", "d"];
+            else if (genotyyppi === "dd") alleelit = ["d", "d"];
+            else alleelit = [genotyyppi[0], genotyyppi[1]];
+            return alleelit[Math.floor(Math.random() * 2)];
+        }
+
+        function luoOlento(nimi, sukupuoli, isag, emag, ika, isaObj = null, emaObj = null) {
+            let realG = {
+                B: arvoAlleeli(isag.B || "Bb") + arvoAlleeli(emag.B || "Bb"),
+                O: arvoAlleeli(isag.O || "OO") + arvoAlleeli(emag.O || "OO"),
+                N: arvoAlleeli(isag.N || "Nn") + arvoAlleeli(emag.N || "Nn"),
+                D: arvoAlleeli(isag.D || "Dd") + arvoAlleeli(emag.D || "Dd")
+            };
+
+            let eyeColor = arvoVariVanhemmilta(isaObj ? isaObj.eyeColor : "#8B4513", emaObj ? emaObj.eyeColor : "#D2691E");
+            let skinColor = arvoVariVanhemmilta(isaObj ? isaObj.skinColor : "#FFB6C1", emaObj ? emaObj.skinColor : "#DDA0DD");
+
+            let calicoSpots = [];
+            if (realG.N === "Nn") {
+                for(let i=0; i<6; i++) {
+                    calicoSpots.push({
+                        x: Math.random() * 1600 + 300,
+                        y: Math.random() * 800 + 300,
+                        r: Math.random() * 80 + 40
+                    });
+                }
             }
 
             return {
@@ -289,9 +337,11 @@
                 cooldownPaivat: 0,
                 luonne: luonteet[Math.floor(Math.random() * luonteet.length)],
                 realGenotype: realG,
-                silmienVari: "#2ecc71",
-                isaObj: isaObj ? { id: isaObj.id, nimi: isaObj.nimi, realGenotype: {...isaObj.realGenotype} } : null,
-                emaObj: emaObj ? { id: emaObj.id, nimi: emaObj.nimi, realGenotype: {...emaObj.realGenotype} } : null,
+                eyeColor: eyeColor,
+                skinColor: skinColor,
+                calicoSpots: calicoSpots,
+                isaObj: isaObj ? { id: isaObj.id, nimi: isaObj.nimi, realGenotype: {...isaObj.realGenotype}, eyeColor: isaObj.eyeColor, skinColor: isaObj.skinColor } : null,
+                emaObj: emaObj ? { id: emaObj.id, nimi: emaObj.nimi, realGenotype: {...emaObj.realGenotype}, eyeColor: emaObj.eyeColor, skinColor: emaObj.skinColor } : null,
                 isaNimi: isaObj ? isaObj.nimi : "Luonto",
                 emaNimi: emaObj ? emaObj.nimi : "Luonto"
             };
@@ -315,7 +365,7 @@
                 kortti.className = "elain-kortti";
                 
                 let g = elain.realGenotype;
-                let genesStr = `B:${g.B1}${g.B2} O:${g.O1}${g.O2} N:${g.N1}${g.N2}`;
+                let genesStr = `B:${g.B} O:${g.O} N:${g.N} D:${g.D}`;
 
                 kortti.innerHTML = `
                     <div class="kortti-header">
@@ -329,6 +379,7 @@
                     <div class="kortti-laajennus">
                         <p><b>Vanhemmat:</b> ${elain.isaNimi} & ${elain.emaNimi}</p>
                         <p><b>Genotyyppi:</b> ${genesStr}</p>
+                        <p><b>Silmät / Nahka:</b> <span style="color:${elain.eyeColor}">■ Silmät</span> | <span style="color:${elain.skinColor}">■ Nahka</span></p>
                         <p><b>Tila:</b> ${elain.sukupuoli === '♀' && elain.tiineysPaivat > 0 ? 'Tiineenä (' + elain.tiineysPaivat + '/2 pv)' : 'Normaali'}</p>
                         <p><label><b>Muokkaa nimeä:</b> <input type="text" value="${elain.nimi}" oninput="muutaNimea(${elain.id}, this.value)" style="background:#111; color:white; border:1px solid #555; padding:2px 5px; border-radius:4px; width:120px;" onclick="event.stopPropagation()"></label></p>
                     </div>
@@ -456,7 +507,7 @@
             if (valittuUros) {
                 piirraKerrokset(uCtx, valittuUros, false, 0, "seisoo");
                 urosNimi.innerText = valittuUros.nimi;
-                urosGeenit.innerText = `B:${valittuUros.realGenotype.B1}${valittuUros.realGenotype.B2} O:${valittuUros.realGenotype.O1}${valittuUros.realGenotype.O2} N:${valittuUros.realGenotype.N1}${valittuUros.realGenotype.N2}`;
+                urosGeenit.innerText = `B:${valittuUros.realGenotype.B} O:${valittuUros.realGenotype.O} N:${valittuUros.realGenotype.N} D:${valittuUros.realGenotype.D}`;
             } else {
                 urosNimi.innerText = "Valitse uros (♂)";
                 urosGeenit.innerText = "-";
@@ -469,7 +520,7 @@
             if (valittuNaaras) {
                 piirraKerrokset(nCtx, valittuNaaras, true, 0, "seisoo");
                 naarasNimi.innerText = valittuNaaras.nimi;
-                naarasGeenit.innerText = `B:${valittuNaaras.realGenotype.B1}${valittuNaaras.realGenotype.B2} O:${valittuNaaras.realGenotype.O1}${valittuNaaras.realGenotype.O2} N:${valittuNaaras.realGenotype.N1}${valittuNaaras.realGenotype.N2}`;
+                naarasGeenit.innerText = `B:${valittuNaaras.realGenotype.B} O:${valittuNaaras.realGenotype.O} N:${valittuNaaras.realGenotype.N} D:${valittuNaaras.realGenotype.D}`;
             } else {
                 naarasNimi.innerText = "Valitse naaras (♀)";
                 naarasGeenit.innerText = "-";
@@ -486,36 +537,7 @@
                 let inb = LaskeSyvällinenInbreeding(valittuUros, valittuNaaras);
                 varoitusDiv.innerText = inb > 0 ? `⚠️ Sukutaulun sisäsiittoisuusarvio: ${inb}%` : "Ei havaittua sukulaisuutta (0%).";
                 breedBtn.disabled = false;
-
-                let varit = new Set();
-                let g1 = valittuUros.realGenotype;
-                let g2 = valittuNaaras.realGenotype;
-                
-                [g1.N1, g1.N2].forEach(n1 => {
-                    [g2.N1, g2.N2].forEach(n2 => {
-                        let onkoN = (n1 === "N" || n2 === "N");
-                        let onkonn = (n1 === "n" && n2 === "n");
-                        if(onkonn) {
-                            [g1.O1, g1.O2].forEach(o1 => {
-                                [g2.O1, g2.O2].forEach(o2 => {
-                                    if(o1 === "o" && o2 === "o") varit.add("Kermanvärinen (Cream)");
-                                    else varit.add("Oranssi (Orange)");
-                                });
-                            });
-                        }
-                        if(onkoN) {
-                            [g1.B1, g1.B2].forEach(b1 => {
-                                [g2.B1, g2.B2].forEach(b2 => {
-                                    if(b1 === "B" || b2 === "B") varit.add("Musta (Black)");
-                                    else if(b1 === "b" || b2 === "b") varit.add("Ruskea (Brown)");
-                                    else varit.add("Vaalea (Light)");
-                                });
-                            });
-                        }
-                    });
-                });
-
-                ennusteDiv.innerHTML = `<b>Mahdolliset pentuvärit:</b> <span style="color:#f1c40f; font-weight:bold;">${Array.from(varit).join(", ")}</span>`;
+                ennusteDiv.innerHTML = `<b>Mahdolliset pentuvärit:</b> <span style="color:#f1c40f; font-weight:bold;">Musta, Ruskea, Oranssi, Kermanvaalea, Calico (Nn)</span>`;
             } else {
                 varoitusDiv.innerText = "";
                 ennusteDiv.innerHTML = "<b>Mahdolliset pentuvärit / fenotyypit:</b> Valitse vanhemmat nähdäksesi ennusteen.";
@@ -548,7 +570,8 @@
                     if (elain.tiineysPaivat > 2) {
                         elain.tiineysPaivat = 0;
                         elain.cooldownPaivat = 7;
-                        let uusiPentu = luoOlento("Pentu-" + (lauma.length + 1), Math.random() < 0.5 ? "♂" : "♀", {B1:"B",B2:"b",O1:"O",O2:"o",N1:"N",N2:"n"}, "pentu", elain.viimeisinIsa, elain);
+                        let isaehdokas = elain.viimeisinIsa || lauma[0];
+                        let uusiPentu = luoOlento("Pentu-" + (lauma.length + 1), Math.random() < 0.5 ? "♂" : "♀", isaehdokas.realGenotype, elain.realGenotype, "pentu", isaehdokas, elain);
                         lauma.push(uusiPentu);
                         lisaaIlmoitus(`🍼 ${elain.nimi} synnytti uuden pennun: ${uusiPentu.nimi}!`);
                     }
@@ -560,9 +583,8 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti.");
         }
 
-        function tallennaPeli() { localStorage.setItem("laji_lauma_v12", JSON.stringify(lauma)); }
+        function tallennaPeli() { localStorage.setItem("laji_lauma_v14", JSON.stringify(lauma)); }
 
-        /* KORJATTU PIIRTOJÄRJESTYS: VÄRI MASKAAN -> ÄÄRIVIIVA ILMAN MASKIA PÄÄLLE */
         function piirraKerrokset(ctx, elain, flipX, liikeAnimaatio = 0, asento = "seisoo") {
             if (!kaikkiKuvatLadattu) return;
 
@@ -571,18 +593,15 @@
 
             let g = elain.realGenotype;
             let turkinVari = "#333333";
-            let onkoN = (g.N1 === "N" || g.N2 === "N");
-            let onkonn = (g.N1 === "n" && g.N2 === "n");
-            let onkgoo = (g.O1 === "o" && g.O2 === "o");
+            let onkoDiluutio = g.D.includes("d");
+            let onkoOranssi = g.O.includes("o") && !g.O.includes("O");
 
-            if (onkonn) {
-                turkinVari = onkgoo ? "#f5deb3" : "#e67e22";
-            } else if (onkoN) {
-                if (g.B1 === "b" || g.B2 === "b") turkinVari = "#8b5a2b";
-                else if (g.B1 === "b1" || g.B2 === "b1") turkinVari = "#d3a27f";
-                else turkinVari = "#222222";
+            if (onkoOranssi) {
+                turkinVari = onkoDiluutio ? "#f5deb3" : "#e67e22";
             } else {
-                turkinVari = "#e67e22";
+                if (g.B.includes("bb")) turkinVari = onkoDiluutio ? "#b57138" : "#8b5a2b";
+                else if (g.B.includes("b1")) turkinVari = onkoDiluutio ? "#e3c2a8" : "#d3a27f";
+                else turkinVari = onkoDiluutio ? "#555566" : "#222222";
             }
 
             const w = 2163;
@@ -593,7 +612,7 @@
             const ox = -w / 2;
             const oy = -h / 2;
 
-            function piirraSijaintiOsa(variImg, viivaImg, vari) {
+            function piirraOsaJaViiva(variImg, viivaImg, vari) {
                 if (variImg && variImg.complete && vari) {
                     ctx.save();
                     ctx.globalCompositeOperation = "source-over";
@@ -601,6 +620,17 @@
                     ctx.globalCompositeOperation = "source-in";
                     ctx.fillStyle = vari;
                     ctx.fillRect(ox, oy, w, h);
+
+                    if (elain.calicoSpots && elain.calicoSpots.length > 0) {
+                        ctx.globalCompositeOperation = "source-atop";
+                        ctx.fillStyle = onkoOranssi ? "#222222" : "#e67e22";
+                        elain.calicoSpots.forEach(s => {
+                            ctx.beginPath();
+                            ctx.arc(s.x + ox, s.y + oy, s.r, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    }
+
                     ctx.restore();
                 }
                 if (viivaImg && viivaImg.complete) {
@@ -621,46 +651,43 @@
             ctx.translate(0, kehoLasku);
             ctx.rotate(kehoKallistus);
 
-            // 1. Häntä & kauimmat jalat
-            piirraSijaintiOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             ctx.save();
             ctx.translate(ox + 1300, oy + 700); ctx.rotate(takajalkaKulma); ctx.translate(-(ox + 1300), -(oy + 700));
-            piirraSijaintiOsa(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
             ctx.restore();
 
-            // 2. Kaula/rinta
-            piirraSijaintiOsa(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
 
-            // 3. Keho
-            piirraSijaintiOsa(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
-
-            // 4. Lähimmät jalat
             ctx.save();
             ctx.translate(ox + 800, oy + 700); ctx.rotate(etujalkaKulma); ctx.translate(-(ox + 800), -(oy + 700));
-            piirraSijaintiOsa(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
             ctx.restore();
 
             ctx.save();
             ctx.translate(ox + 1400, oy + 700); ctx.rotate(-takajalkaKulma); ctx.translate(-(ox + 1400), -(oy + 700));
-            piirraSijaintiOsa(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
             ctx.restore();
 
             ctx.save();
             ctx.translate(ox + 700, oy + 700); ctx.rotate(-etujalkaKulma); ctx.translate(-(ox + 700), -(oy + 700));
-            piirraSijaintiOsa(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
             ctx.restore();
 
-            // 5. Kauempi korva
-            piirraSijaintiOsa(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
 
-            // 6. Pää, silmät, nenä & lähempi korva
             ctx.save();
             ctx.translate(ox + 600, oy + 400); ctx.rotate(paaKääntö); ctx.translate(-(ox + 600), -(oy + 400));
-            piirraSijaintiOsa(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
-            piirraSijaintiOsa(kuvat.nena_vari, kuvat.nena_viivat, "#222222");
-            piirraSijaintiOsa(kuvat.silma_vari, kuvat.silma_viivat, elain.silmienVari || "#2ecc71");
-            if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) ctx.drawImage(kuvat.pupilli_vari, ox, oy, w, h);
-            piirraSijaintiOsa(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.nena_vari, kuvat.nena_viivat, elain.skinColor || "#FFB6C1");
+
+            piirraOsaJaViiva(kuvat.silma_vari, kuvat.silma_viivat, elain.eyeColor || "#8B4513");
+            if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) {
+                ctx.drawImage(kuvat.pupilli_vari, ox, oy, w, h);
+            }
+
+            piirraOsaJaViiva(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
             if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) ctx.drawImage(kuvat.korva_sisa_vari, ox, oy, w, h);
             ctx.restore();
 
@@ -773,14 +800,14 @@
         }
 
         function lataaPeli() {
-            let tallennettu = localStorage.getItem("laji_lauma_v12");
+            let tallennettu = localStorage.getItem("laji_lauma_v14");
             if (tallennettu) {
                 lauma = JSON.parse(tallennettu);
             }
             
             if (!lauma || lauma.length === 0) {
-                let uros = luoOlento("Kanta-Uros", "♂", { B1:"B", B2:"b", O1:"O", O2:"o", N1:"N", N2:"n" }, "aikuinen");
-                let ema = luoOlento("Kanta-Emä", "♀", { B1:"b", B2:"b", O1:"o", O2:"o", N1:"N", N2:"n" }, "aikuinen");
+                let uros = luoOlento("Kanta-Uros", "♂", {B:"Bb", O:"OO", N:"Nn", D:"Dd"}, {B:"Bb", O:"OO", N:"Nn", D:"Dd"}, "aikuinen");
+                let ema = luoOlento("Kanta-Emä", "♀", {B:"bb", O:"oo", N:"nn", D:"dd"}, {B:"bb", O:"oo", N:"nn", D:"dd"}, "aikuinen");
                 lauma.push(uros, ema);
             }
             paivitaKaikkiUI();
