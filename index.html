@@ -142,6 +142,19 @@
         .allele-badge { display: inline-block; background: #1a1a24; border: 1px solid #4a4af5; padding: 4px 8px; border-radius: 4px; margin-right: 4px; font-weight: bold; font-size: 12px; }
         .allele-badge.locked { border-color: #555; color: #777; }
 
+        /* TEHTÄVIEN TYYLIT */
+        .quest-list { display: flex; flex-direction: column; gap: 12px; }
+        .quest-card {
+            background: #222232;
+            border: 2px solid #3a3a52;
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .quest-card.completed { border-color: #2ecc71; background: #1e382b; }
+
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
         .modal-content { background-color: #222232; margin: 10% auto; padding: 15px; border: 2px solid #4a4af5; border-radius: 8px; width: 90%; max-width: 500px; color: white; }
         .close-btn { color: #aaa; float: right; font-size: 24px; font-weight: bold; cursor: pointer; }
@@ -161,6 +174,7 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="vaihdaSivua('lab-sivu', event)">🔬 Labra</button>
             <button class="tab-btn" onclick="vaihdaSivua('jalostus-sivu', event)">❤️ Jalostus</button>
+            <button class="tab-btn" onclick="vaihdaSivua('tehtavat-sivu', event)">📋 Tehtävät</button>
             <button class="tab-btn" onclick="vaihdaSivua('kauppa-sivu', event)">🛒 Kauppa</button>
             <button class="tab-btn" onclick="vaihdaSivua('geenikirja-sivu', event)">📖 Kirjasto</button>
         </div>
@@ -243,7 +257,14 @@
         </div>
     </div>
 
-    <!-- SIVU 3: KAUPPA -->
+    <!-- SIVU 3: TEHTÄVÄT -->
+    <div id="tehtavat-sivu" class="page">
+        <h2>📋 Päivän Tehtävät</h2>
+        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Uudet tehtävät arvotaan aina kun siirryt seuraavaan päivään!</p>
+        <div class="quest-list" id="tehtava-alue"></div>
+    </div>
+
+    <!-- SIVU 4: KAUPPA -->
     <div id="kauppa-sivu" class="page">
         <h2>Kauppa & Jalostustarvikkeet</h2>
         <div class="shop-container">
@@ -271,7 +292,7 @@
         </div>
     </div>
 
-    <!-- SIVU 4: GEENIKIRJASTO -->
+    <!-- SIVU 5: GEENIKIRJASTO -->
     <div id="geenikirja-sivu" class="page">
         <h2>📖 Geenikirjasto (Codex)</h2>
         <div class="codex-container" id="codex-alue"></div>
@@ -339,6 +360,7 @@
         let aktiivinenBuffSukupuoli = null;
         let aktiivinenBuffTupla = false;
         let animaatioTilat = {};
+        let paivittaisetTehtavat = [];
 
         let loytyneetAlleelit = {
             B: ['B', 'b'],
@@ -373,6 +395,65 @@
             ilmoitukset.unshift(`[${new Date().toLocaleTimeString()}] ${teksti}`);
             if (ilmoitukset.length > 25) ilmoitukset.pop();
             document.getElementById("ilmoitus-lista").innerHTML = ilmoitukset.map(i => `<div style="padding:3px 0; border-bottom:1px solid #333;">${i}</div>`).join("");
+        }
+
+        // TEHTÄVÄJÄRJESTELMÄ
+        const mahdollisuudetTehtavat = [
+            { id: "calico", kuvaus: "Omista vähintään 1 Calico-kuvioinen eläin (Nn)", palkinto: 100, tarkista: () => lauma.some(e => e.realGenotype.N === "Nn") },
+            { id: "pystykorva", kuvaus: "Omista vähintään 1 pystykorvainen eläin (E_)", palkinto: 80, tarkista: () => lauma.some(e => e.realGenotype.E.includes("E")) },
+            { id: "luppakorva", kuvaus: "Omista vähintään 1 luppakorvainen eläin (e1e1)", palkinto: 120, tarkista: () => lauma.some(e => e.realGenotype.E === "e1e1") },
+            { id: "diluutio", kuvaus: "Omista vaalea/diluutioturkki (dd)", palkinto: 110, tarkista: () => lauma.some(e => e.realGenotype.D === "dd") },
+            { id: "suurlauma", kuvaus: "Kasvata laumakoko vähintään 5 eläimeen", palkinto: 150, tarkista: () => lauma.length >= 5 },
+            { id: "pentu", kuvaus: "Löytyyhän laumastasi vähintään yksi pentu?", palkinto: 90, tarkista: () => lauma.some(e => e.ika === "pentu") }
+        ];
+
+        function arvoPaivittaisetTehtavat() {
+            let sekoitettu = [...mahdollisuudetTehtavat].sort(() => 0.5 - Math.random());
+            paivittaisetTehtavat = sekoitettu.slice(0, 3).map(t => ({
+                ...t,
+                suoritettu: false,
+                lunastettu: false
+            }));
+        }
+
+        function paivitaTehtavatUI() {
+            const alue = document.getElementById("tehtava-alue");
+            if (!alue) return;
+            alue.innerHTML = "";
+
+            paivittaisetTehtavat.forEach((t, idx) => {
+                let valmis = t.tarkista();
+                let card = document.createElement("div");
+                card.className = "quest-card" + (t.lunastettu ? " completed" : "");
+                
+                let painikeHtml = "";
+                if (t.lunastettu) {
+                    painikeHtml = `<span style="color:#2ecc71; font-weight:bold;">✓ Lunastettu (+${t.palkinto} €)</span>`;
+                } else if (valmis) {
+                    painikeHtml = `<button class="action-btn" style="width:auto; margin:0; background:#2ecc71;" onclick="lunastaTehtava(${idx})">Lunasta ${t.palkinto} €</button>`;
+                } else {
+                    painikeHtml = `<span style="color:#888; font-size:12px;">Kesken</span>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <b style="font-size:14px; color:${valmis ? '#2ecc71' : '#fff'};">${t.kuvaus}</b><br>
+                        <span style="font-size:11px; color:#aaa;">Palkinto: 💰 ${t.palkinto} €</span>
+                    </div>
+                    <div>${painikeHtml}</div>
+                `;
+                alue.appendChild(card);
+            });
+        }
+
+        function lunastaTehtava(idx) {
+            let t = paivittaisetTehtavat[idx];
+            if (t && t.tarkista() && !t.lunastettu) {
+                t.lunastettu = true;
+                raha += t.palkinto;
+                lisaaIlmoitus(`🎉 Tehtävä suoritettu: "${t.kuvaus}"! Voitit ${t.palkinto} €.`);
+                paivitaKaikkiUI();
+            }
         }
 
         function tarkistaJaLisaaAlleelit(elain) {
@@ -494,10 +575,12 @@
             document.getElementById("pelaaja-raha").innerText = raha;
             paivitaLaumaUI();
             paivitaJalostusUI();
+            paivitaTehtavatUI();
             paivitaGeenikirjaUI();
-            localStorage.setItem("laji_lauma_v34", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v34", raha);
-            localStorage.setItem("laji_geenit_v34", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_lauma_v35", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v35", raha);
+            localStorage.setItem("laji_geenit_v35", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_tehtavat_v35", JSON.stringify(paivittaisetTehtavat));
         }
 
         function paivitaLaumaUI() {
@@ -752,8 +835,12 @@
                     }
                 }
             });
+
+            // Arvo uudet päivittäiset tehtävät seuraavalle päivälle
+            arvoPaivittaisetTehtavat();
+
             paivitaKaikkiUI();
-            lisaaIlmoitus("☀️ Uusi päivä koitti.");
+            lisaaIlmoitus("☀️ Uusi päivä koitti ja saatiin 3 uutta tehtävää!");
         }
 
         function piirraKerrokset(ctx, elain, flipX, liike = 0, asento = "seisoo", scale = 0.095, silmätKiinni = false) {
@@ -794,9 +881,8 @@
             ctx.save();
             ctx.translate(liike * 5, kehoOffsetY);
 
-            // 1. Häntä & Kauemmat jalat (animaatiolla)
+            // 1. Häntä & Kauemmat jalat
             ctx.save();
-            ctx.translate(0, 0);
             if (liike !== 0) ctx.rotate(liike * 0.03);
             piirraOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             ctx.restore();
@@ -815,7 +901,7 @@
             piirraOsa(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
             piirraOsa(kuvat.keho_vari, kuvat.keho_viivat, turkinVari, true);
 
-            // 3. Lähemmät jalat (animaatiolla: etutassut eteen, takatassut taakse)
+            // 3. Lähemmät jalat
             ctx.save();
             if (liike !== 0) ctx.translate(-liike * 10, 0);
             piirraOsa(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
@@ -842,7 +928,6 @@
             
             let onkoVastasyntynyt = (elain.ika === "pentu" && elain.ikaPaivat <= 1);
             if (onkoVastasyntynyt || silmätKiinni) {
-                // Suljettu silmä pysyy mustana, mutta ihonvärinen alue jää avoimen silmän kohdalle oikein
                 if (kuvat.silma_vari && kuvat.silma_vari.complete) {
                     offCtx.clearRect(0, 0, w, h);
                     offCtx.globalCompositeOperation = "source-over";
@@ -885,7 +970,6 @@
             ctx.restore();
         }
 
-        // Satunnaiset elävät animaatiot korteille (heilutus/tassuliike)
         setInterval(() => {
             if (lauma.length === 0) return;
             let arpa = lauma[Math.floor(Math.random() * lauma.length)];
@@ -908,17 +992,29 @@
             if (event) event.target.classList.add('active');
 
             if (id === 'jalostus-sivu') paivitaJalostusUI();
+            if (id === 'tehtavat-sivu') paivitaTehtavatUI();
             if (id === 'geenikirja-sivu') paivitaGeenikirjaUI();
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v34");
-            let tRaha = localStorage.getItem("laji_raha_v34");
-            let tGeenit = localStorage.getItem("laji_geenit_v34");
+            let tLauma = localStorage.getItem("laji_lauma_v35");
+            let tRaha = localStorage.getItem("laji_raha_v35");
+            let tGeenit = localStorage.getItem("laji_geenit_v35");
+            let tTehtavat = localStorage.getItem("laji_tehtavat_v35");
 
             if (tLauma) lauma = JSON.parse(tLauma);
             if (tRaha) raha = parseInt(tRaha);
             if (tGeenit) loytyneetAlleelit = JSON.parse(tGeenit);
+
+            if (tTehtavat) {
+                let tallennetut = JSON.parse(tTehtavat);
+                paivittaisetTehtavat = tallennetut.map(t => ({
+                    ...t,
+                    tarkista: mahdollisuudetTehtavat.find(m => m.id === t.id)?.tarkista || (() => false)
+                }));
+            } else {
+                arvoPaivittaisetTehtavat();
+            }
 
             if (lauma.length === 0) {
                 lauma.push(luoOlento("Kanta-Uros", "♂", {B:"BB", O:"Oo", N:"NN", D:"DD", E:"EE"}, {B:"BB", O:"Oo", N:"NN", D:"DD", E:"EE"}, "aikuinen", 4));
