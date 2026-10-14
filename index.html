@@ -69,7 +69,6 @@
             margin-top: 6px;
         }
 
-        /* LEVEMMÄT JA LYHYEMMÄT JALOSTUSLAATIKOT */
         .breed-top-panel {
             background: #222232;
             border: 2px solid #4a4af5;
@@ -222,8 +221,11 @@
 
     <!-- SIVU 1: LABORATORIO -->
     <div id="lab-sivu" class="page active">
-        <button class="action-btn" style="background-color: #2ecc71; margin-bottom: 15px; width: auto;" onclick="seuraavaPaivaRollover()">☀️ Seuraava päivä</button>
-        <h2>Sinun Laumasi (<span id="lauma-maara">0</span>)</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <button class="action-btn" style="background-color: #2ecc71; margin:0; width: auto;" onclick="seuraavaPaivaRollover()">☀️ Seuraava päivä</button>
+            <span style="font-size: 13px; color: #aaa;">Laumakapasiteetti: <b id="lauma-maara">0</b> / <span id="lauma-max">8</span></span>
+        </div>
+        <h2>Sinun Laumasi</h2>
         <div id="lauma-alue" class="lauma-grid"></div>
     </div>
 
@@ -276,19 +278,34 @@
     <!-- SIVU 3: TEHTÄVÄT -->
     <div id="tehtavat-sivu" class="page">
         <h2>📋 Päivän Tehtävät</h2>
-        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Uudet haastavammat tavoitteet arvotaan aina päivän vaihtuessa!</p>
+        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Uudet tavoitteet arvotaan päivän vaihtuessa!</p>
         <div class="quest-list" id="tehtava-alue"></div>
     </div>
 
     <!-- SIVU 4: KAUPPA -->
     <div id="kauppa-sivu" class="page">
-        <h2>🛒 Geenipankin Kauppa & Tarvikkeet</h2>
+        <h2>🛒 Geenipankin Kauppa, Laitteet & Laajennukset</h2>
         
         <div class="shop-container">
             <div class="shop-box">
                 <h3>🧬 Geenipankin Tuonnit (Vaihtuu päivittäin)</h3>
-                <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">Osta uusi täysikasvuinen eläin laumaasi.</p>
                 <div id="kauppa-elaimet-alue"></div>
+            </div>
+
+            <div class="shop-box">
+                <h3>🏢 Laajennukset & Laboratorio</h3>
+                <div class="shop-item">
+                    <div><b>Laajenna laumakapasiteettia (+4 paikkaa)</b><br><span style="font-size:11px; color:#aaa;">Nykyinen max: <span id="max-paikat-naytto">8</span></span></div>
+                    <button class="action-btn" style="width: auto; margin:0; padding:6px 10px;" onclick="ostaLaajennus('kapasiteetti', 400)">400 €</button>
+                </div>
+                <div class="shop-item">
+                    <div><b>Pentuhuone</b><br><span style="font-size:11px; color:#aaa;">Nopeuttaa emän palautumisaikaa 7 päivästä 4 päivään</span></div>
+                    <button class="action-btn" style="width: auto; margin:0; padding:6px 10px;" onclick="ostaLaajennus('pentuhuone', 600)">600 €</button>
+                </div>
+                <div class="shop-item">
+                    <div><b>DNA-Analysaattori</b><br><span style="font-size:11px; color:#aaa;">Mahdollistaa eläimen tarkan perimän skannauksen</span></div>
+                    <button class="action-btn" style="width: auto; margin:0; padding:6px 10px;" onclick="ostaLaajennus('analysaattori', 1000)">1 000 €</button>
+                </div>
             </div>
 
             <div class="shop-box">
@@ -373,7 +390,11 @@
         }
 
         let lauma = [];
-        let raha = 150;
+        let raha = 250;
+        let maxLaumaKoko = 8;
+        let omistaakoPentuhuone = false;
+        let omistaakoAnalysaattori = false;
+
         let aktiivinenBuffSukupuoli = null;
         let aktiivinenBuffTupla = false;
         let paivittaisetTehtavat = [];
@@ -384,7 +405,7 @@
 
         const luonteet = ["Rauhallinen", "Vilkas", "Ujo", "Utelias"];
         const geenitMaaritykset = {
-            B: { nimi: "Lokus B (Musta / Ruskea / Kaneli)", kaikki: ["B", "b", "b1"], kuvaus: "Määrittää perusvärit (B = musta, b = ruskea, b1 = kaneli)." },
+            B: { nimi: "Lokus B (Musta / Ruskea / Kaneli)", kaikki: ["B", "b", "b1"], kuvaus: "Määrittää perusvärit." },
             O: { nimi: "Lokus O (Oranssi / Kerma)", kaikki: ["O", "o"], kuvaus: "Vaikuttaa oranssiin ja kermanvaaleaan." },
             N: { nimi: "Lokus N (Musta / Calico / Punainen)", kaikki: ["N", "n"], kuvaus: "NN = B-lokus, Nn = Calico, nn = O-lokus." },
             D: { nimi: "Lokus D (Diluutio)", kaikki: ["D", "d"], kuvaus: "Vaalentaa perusvärejä pastellisävyiksi." },
@@ -410,7 +431,6 @@
             document.getElementById("ilmoitus-lista").innerHTML = ilmoitukset.map(i => `<div style="padding:3px 0; border-bottom:1px solid #333;">${i}</div>`).join("");
         }
 
-        // HAASTAVAMMAT JA MONIOSAISET TEHTÄVÄT
         const mahdollisuudetTehtavat = [
             { id: "t1", kuvaus: "Kasvata naaraspuolinen pystykorvainen eläin (E_)", palkinto: 120, tarkista: () => lauma.some(e => e.sukupuoli === "♀" && e.realGenotype.E.includes("E")) },
             { id: "t2", kuvaus: "Omista urospuolinen Calico-eläin (Nn)", palkinto: 130, tarkista: () => lauma.some(e => e.sukupuoli === "♂" && e.realGenotype.N === "Nn") },
@@ -532,9 +552,15 @@
                 alue.appendChild(row);
                 setTimeout(() => piirraElainKankaalle(item.elain, `shop-elain-${idx}`, item.tyyppi === 'uros'), 20);
             });
+
+            document.getElementById("max-paikat-naytto").innerText = maxLaumaKoko;
         }
 
         function ostaKaupanElain(tyyppi) {
+            if (lauma.length >= maxLaumaKoko) {
+                alert("Laumakapasiteetti on täynnä! Laajenna laumaa kaupasta.");
+                return;
+            }
             let elain = tyyppi === 'uros' ? kauppaUros : kauppaNaaras;
             if (!elain) return;
 
@@ -549,6 +575,25 @@
             else kauppaNaaras = null;
 
             lisaaIlmoitus(`🛒 Ostettu ${elain.nimi} hintaan ${elain.hinta} €.`);
+            paivitaKaikkiUI();
+        }
+
+        function ostaLaajennus(tyyppi, hinta) {
+            if (raha < hinta) { alert("Ei tarpeeksi rahaa!"); return; }
+            raha -= hinta;
+            if (tyyppi === 'kapasiteetti') {
+                maxLaumaKoko += 4;
+                lisaaIlmoitus("🏢 Laumakapasiteettia laajennettu +4 paikalla!");
+                alert("Laumakapasiteetti kasvatettu!");
+            } else if (tyyppi === 'pentuhuone') {
+                omistaakoPentuhuone = true;
+                lisaaIlmoitus("🏠 Pentuhuone rakennettu! Emän palautumisaika lyhenee.");
+                alert("Pentuhuone hankittu!");
+            } else if (tyyppi === 'analysaattori') {
+                omistaakoAnalysaattori = true;
+                lisaaIlmoitus("🔬 DNA-Analysaattori hankittu labraan!");
+                alert("DNA-Analysaattori ostettu!");
+            }
             paivitaKaikkiUI();
         }
 
@@ -625,7 +670,7 @@
                 id: Date.now() + Math.floor(Math.random() * 10000),
                 nimi: nimi,
                 sukupuoli: sukupuoli,
-                ika: ika,
+                ika: ika, // "pentu", "aikuinen", "seniori", "elakepolvi"
                 ikaPaivat: ikaPaivat,
                 tiineysPaivat: 0,
                 palautumisPaivat: 0,
@@ -695,7 +740,6 @@
 
             let ennusteet = [];
 
-            // Tarkista NN x nn -> aina Nn (Calico)
             if ((ug.N === "NN" && ng.N === "nn") || (ug.N === "nn" && ng.N === "NN")) {
                 ennusteet.push("kilpikonnakuvioisia (Calico) pentuja");
             } else if (ug.N === "nn" && ng.N === "nn") {
@@ -725,12 +769,15 @@
             paivitaTehtavatUI();
             paivitaKauppaUI();
             paivitaGeenikirjaUI();
-            localStorage.setItem("laji_lauma_v40", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v40", raha);
-            localStorage.setItem("laji_geenit_v40", JSON.stringify(loytyneetAlleelit));
-            localStorage.setItem("laji_tehtavat_v40", JSON.stringify(paivittaisetTehtavat));
-            localStorage.setItem("laji_kauppa_uros_v40", JSON.stringify(kauppaUros));
-            localStorage.setItem("laji_kauppa_naaras_v40", JSON.stringify(kauppaNaaras));
+            localStorage.setItem("laji_lauma_v41", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v41", raha);
+            localStorage.setItem("laji_geenit_v41", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_tehtavat_v41", JSON.stringify(paivittaisetTehtavat));
+            localStorage.setItem("laji_kauppa_uros_v41", JSON.stringify(kauppaUros));
+            localStorage.setItem("laji_kauppa_naaras_v41", JSON.stringify(kauppaNaaras));
+            localStorage.setItem("laji_max_koko_v41", maxLaumaKoko);
+            localStorage.setItem("laji_pentuhuone_v41", omistaakoPentuhuone);
+            localStorage.setItem("laji_analysaattori_v41", omistaakoAnalysaattori);
         }
 
         function paivitaLaumaUI() {
@@ -746,11 +793,15 @@
                 kortti.className = "elain-kortti" + (aukiOlevatIdt.includes(String(elain.id)) ? " auki" : "");
                 kortti.dataset.id = elain.id;
                 
-                let tilaTeksti = elain.ika === 'pentu' ? `Pentu (${elain.ikaPaivat}/4 pv)` : 'Aikuinen';
-                if (elain.tiineysPaivat > 0 || elain.viimeisinIsa) tilaTeksti += ` | Tiine (${elain.tiineysPaivat}/2 pv)`;
-                else if (elain.palautumisPaivat > 0) tilaTeksti += ` | Palautuu (${elain.palautumisPaivat}/7 pv)`;
+                let ikateksti = elain.ika === 'pentu' ? `Pentu (${elain.ikaPaivat}/4 pv)` : (elain.ika === 'aikuinen' ? 'Aikuinen' : (elain.ika === 'seniori' ? 'Seniori' : 'Eläkeläinen'));
+                if (elain.tiineysPaivat > 0 || elain.viimeisinIsa) ikateksti += ` | Tiine (${elain.tiineysPaivat}/2 pv)`;
+                else if (elain.palautumisPaivat > 0) ikateksti += ` | Palautuu (${elain.palautumisPaivat} pv)`;
 
-                let fenotyyppiGenet = haeFenotyyppiGeenit(elain);
+                let geenitTeksti = haeFenotyyppiGeenit(elain);
+                if (omistaakoAnalysaattori) {
+                    let g = elain.realGenotype;
+                    geenitTeksti += `<br><span style="color:#3498db; font-size:10px;">[DNA: B:${g.B} O:${g.O} N:${g.N} D:${g.D} E:${g.E} W:${g.W}]</span>`;
+                }
 
                 kortti.innerHTML = `
                     <div class="kortti-kuva-alue">
@@ -758,7 +809,7 @@
                     </div>
                     <div class="kortti-info">
                         <h4 style="margin:0; font-size:14px;">${elain.nimi} (${elain.sukupuoli})</h4>
-                        <p style="font-size:11px; color:#aaa; margin:2px 0;">${tilaTeksti}</p>
+                        <p style="font-size:11px; color:#aaa; margin:2px 0;">${ikateksti}</p>
                         <div style="display:flex; gap:4px; justify-content:center; margin-top:6px;">
                             <button class="sell-btn" onclick="myyElain(${elain.id}, event)">Myy (40 €)</button>
                             <button class="tree-btn" onclick="avaaSukupuu(${elain.id}, event)">Sukupuu</button>
@@ -767,7 +818,7 @@
                     <div class="kortti-laajennus">
                         <p style="margin:3px 0;"><b>Luonne:</b> ${elain.luonne}</p>
                         <p style="margin:3px 0;"><b>Vanhemmat:</b> ${elain.isaNimi} & ${elain.emaNimi}</p>
-                        <p style="margin:3px 0;"><b>Geenit (Fenotyyppi):</b> ${fenotyyppiGenet}</p>
+                        <p style="margin:3px 0;"><b>Geenit:</b> ${geenitTeksti}</p>
                     </div>
                 `;
 
@@ -836,7 +887,7 @@
 
             lauma.filter(e => e.sukupuoli === "♀").forEach(elain => {
                 const row = document.createElement("div");
-                let este = elain.ika === "pentu" ? "Pentu" : ((elain.tiineysPaivat > 0 || elain.viimeisinIsa) ? `Tiine (${elain.tiineysPaivat}/2 pv)` : (elain.palautumisPaivat > 0 ? `Palautuu (${elain.palautumisPaivat}/7 pv)` : null));
+                let este = elain.ika === "pentu" ? "Pentu" : (elain.ika === "elakepolvi" ? "Eläkeläinen" : ((elain.tiineysPaivat > 0 || elain.viimeisinIsa) ? `Tiine (${elain.tiineysPaivat}/2 pv)` : (elain.palautumisPaivat > 0 ? `Palautuu (${elain.palautumisPaivat} pv)` : null)));
                 
                 row.className = "breed-item-row" + (valittuNaaras?.id === elain.id ? " selected" : "") + (este ? " disabled" : "");
                 row.innerHTML = `
@@ -860,7 +911,7 @@
 
             lauma.filter(e => e.sukupuoli === "♂").forEach(elain => {
                 const row = document.createElement("div");
-                let este = elain.ika === "pentu" ? "Pentu" : null;
+                let este = elain.ika === "pentu" ? "Pentu" : (elain.ika === "elakepolvi" ? "Eläkeläinen" : null);
                 
                 row.className = "breed-item-row" + (valittuUros?.id === elain.id ? " selected" : "") + (este ? " disabled" : "");
                 row.innerHTML = `
@@ -874,7 +925,7 @@
                     </div>
                 `;
                 row.onclick = () => {
-                    if (este) { alert("Pentu on liian nuori!"); return; }
+                    if (este) { alert("Eläin ei ole jalostuskunnossa!"); return; }
                     valittuUros = elain;
                     paivitaJalostusUI();
                 };
@@ -950,10 +1001,10 @@
         function seuraavaPaivaRollover() {
             let syntyneetPennut = 0;
             lauma.forEach(elain => {
-                if (elain.ika === "pentu") {
-                    elain.ikaPaivat += 1;
-                    if (elain.ikaPaivat >= 4) elain.ika = "aikuinen";
-                }
+                elain.ikaPaivat += 1;
+                if (elain.ika === "pentu" && elain.ikaPaivat >= 4) elain.ika = "aikuinen";
+                else if (elain.ika === "aikuinen" && elain.ikaPaivat >= 18) elain.ika = "seniori";
+                else if (elain.ika === "seniori" && elain.ikaPaivat >= 28) elain.ika = "elakepolvi";
                 
                 if (elain.palautumisPaivat > 0) {
                     elain.palautumisPaivat -= 1;
@@ -963,17 +1014,18 @@
                     elain.tiineysPaivat += 1;
                     if (elain.tiineysPaivat >= 2) {
                         elain.tiineysPaivat = 0;
-                        elain.palautumisPaivat = 7;
+                        elain.palautumisPaivat = omistaakoPentuhuone ? 4 : 7;
                         
                         let maara = aktiivinenBuffTupla ? 2 : 1;
                         aktiivinenBuffTupla = false;
 
                         for(let i=0; i<maara; i++) {
+                            if (lauma.length >= maxLaumaKoko) break;
                             let sp = aktiivinenBuffSukupuoli ? aktiivinenBuffSukupuoli : (Math.random() < 0.5 ? "♂" : "♀");
                             let uusi = luoOlento("Pentu-" + (lauma.length + 1), sp, elain.viimeisinIsa.realGenotype, elain.realGenotype, "pentu", 0, elain.viimeisinIsa, elain);
                             lauma.push(uusi);
                             syntyneetPennut++;
-                            lisaaIlmoitus(`🍼 Synnytetty uusi pentu: ${uusi.nimi}! Naaras palautuu 7 päivää.`);
+                            lisaaIlmoitus(`🍼 Synnytetty uusi pentu: ${uusi.nimi}!`);
                         }
                         elain.viimeisinIsa = null;
                         aktiivinenBuffSukupuoli = null;
@@ -981,11 +1033,24 @@
                 }
             });
 
+            // Satunnaistapahtumat uuden päivän kunniaksi
+            let satunnaisetTapahtumatTeksti = "";
+            let eventArpa = Math.random();
+            if (eventArpa < 0.25) {
+                let bonuso = 100;
+                raha += bonuso;
+                satunnaisetTapahtumatTeksti = `🎁 Paikallinen eläinsuojeluyhdistys lahjoitti tutkimusavustusta +${bonuso} €!`;
+            } else if (eventArpa < 0.45) {
+                satunnaisetTapahtumatTeksti = `🌟 Geenitutkija vieraili luonasi ja antoi vinkkejä jalostukseen!`;
+            } else {
+                satunnaisetTapahtumatTeksti = ` peaceful päivä aitauksessa.`;
+            }
+
             arvoPaivittaisetTehtavat();
             arvoKaupanValikoima();
             paivitaKaikkiUI();
 
-            document.getElementById("paivanvaihto-teksti").innerText = `Aika kuluu! ${syntyneetPennut > 0 ? `Syntyi ${syntyneetPennut} uutta pentua! ` : ''}Olet saanut 3 uutta tehtävää ja kaupan eläinvalikoima on päivittynyt.`;
+            document.getElementById("paivanvaihto-teksti").innerText = `Aika kuluu! ${syntyneetPennut > 0 ? `Syntyi ${syntyneetPennut} uutta pentua! ` : ''}${satunnaisetTapahtumatTeksti}`;
             avaaModal("paivanvaihto-modal");
             lisaaIlmoitus("☀️ Uusi päivä koitti.");
         }
@@ -1134,16 +1199,22 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v40");
-            let tRaha = localStorage.getItem("laji_raha_v40");
-            let tGeenit = localStorage.getItem("laji_geenit_v40");
-            let tTehtavat = localStorage.getItem("laji_tehtavat_v40");
-            let tKauppaU = localStorage.getItem("laji_kauppa_uros_v40");
-            let tKauppaN = localStorage.getItem("laji_kauppa_naaras_v40");
+            let tLauma = localStorage.getItem("laji_lauma_v41");
+            let tRaha = localStorage.getItem("laji_raha_v41");
+            let tGeenit = localStorage.getItem("laji_geenit_v41");
+            let tTehtavat = localStorage.getItem("laji_tehtavat_v41");
+            let tKauppaU = localStorage.getItem("laji_kauppa_uros_v41");
+            let tKauppaN = localStorage.getItem("laji_kauppa_naaras_v41");
+            let tMaxKoko = localStorage.getItem("laji_max_koko_v41");
+            let tPentuhuone = localStorage.getItem("laji_pentuhuone_v41");
+            let tAnalysaattori = localStorage.getItem("laji_analysaattori_v41");
 
             if (tLauma) lauma = JSON.parse(tLauma);
             if (tRaha) raha = parseInt(tRaha);
             if (tGeenit) loytyneetAlleelit = JSON.parse(tGeenit);
+            if (tMaxKoko) maxLaumaKoko = parseInt(tMaxKoko);
+            if (tPentuhuone) omistaakoPentuhuone = tPentuhuone === 'true';
+            if (tAnalysaattori) omistaakoAnalysaattori = tAnalysaattori === 'true';
 
             if (tTehtavat) {
                 let tallennetut = JSON.parse(tTehtavat);
