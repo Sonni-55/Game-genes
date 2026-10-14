@@ -469,8 +469,7 @@
             valittuNaaras.tiineysPaivat = 1;
             lisaaIlmoitus(`❤️ ${valittuNaaras.nimi} astutettiin uroksen ${valittuUros.nimi} kanssa! Tiineys alkanut.`);
             
-            // Tallennetaan tulevan pennun isä ja emä tilapäisesti naaraaseen syntymää varten
-            valittuNaaras.viimeisinIsa = valittuUros;
+            valittuNaaras.viimeisinIsa = { ...valittuUros };
 
             valittuUros = null;
             valittuNaaras = null;
@@ -541,9 +540,9 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti. Päivät päivitetty.");
         }
 
-        function tallennaPeli() { localStorage.setItem("laji_lauma_v7", JSON.stringify(lauma)); }
+        function tallennaPeli() { localStorage.setItem("laji_lauma_v8", JSON.stringify(lauma)); }
 
-        /* TÄYDELLINEN KERROSTEN PIIRTO HALUTUSSA JÄRJESTYKSESSÄ (Z-INDEX / LAYERS) */
+        /* PUHDAS PARITTAISEN KERROKSEN PIIRTO (VÄRI JA ÄÄRIVIIVA SAMANAIKAISESTI OSA KERRALLAAN) */
         function piirraKerrokset(ctx, elain, flipX, liikeAnimaatio = 0, asento = "seisoo") {
             if (!kaikkiKuvatLadattu) return;
 
@@ -572,7 +571,8 @@
             const ox = -w / 2;
             const oy = -h / 2;
 
-            function piirraOsa(variImg, viivaImg, vari) {
+            // Yhdistetty apufunktio: piirtää väriosa-kerroksen JA sen oman mustan ääriviivan
+            function piirraOsaJaViiva(variImg, viivaImg, vari) {
                 if (variImg && variImg.complete && vari) {
                     ctx.save();
                     ctx.globalCompositeOperation = "source-over";
@@ -590,56 +590,68 @@
                 }
             }
 
-            // Asennot ja kulmat yläosasta kääntyvänä
-            let etujalkaKulma = (asento === "seisoo") ? Math.sin(liikeAnimaatio) * 18 : (asento === "istuu" ? 10 : -45);
-            let takajalkaKulma = (asento === "seisoo") ? -Math.sin(liikeAnimaatio) * 18 : (asento === "istuu" ? -55 : -60);
-            let kehoLasku = (asento === "makaa" || asento === "nukkuu") ? 220 : (asento === "istuu" ? 100 : 0);
-            let kehoKallistus = (asento === "istuu") ? -0.12 : 0;
+            // Animaatiot ja kiertokulmat
+            let etujalkaKulma = (asento === "seisoo") ? Math.sin(liikeAnimaatio) * 0.3 : (asento === "istuu" ? 0.1 : -0.7);
+            let takajalkaKulma = (asento === "seisoo") ? -Math.sin(liikeAnimaatio) * 0.3 : (asento === "istuu" ? -0.8 : -0.9);
+            let kehoLasku = (asento === "makaa" || asento === "nukkuu") ? 200 : (asento === "istuu" ? 90 : 0);
+            let kehoKallistus = (asento === "istuu") ? -0.1 : 0;
             let paaKääntö = (asento === "nukkuu") ? 0.3 : 0;
 
             ctx.save();
             ctx.translate(0, kehoLasku);
             ctx.rotate(kehoKallistus);
 
-            // JÄRJESTYS: 1. Häntä & kauimmat jalat
-            piirraOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
-            ctx.save(); ctx.rotate((takajalkaKulma * Math.PI) / 180);
-            piirraOsa(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
-            ctx.restore();
-
-            // JÄRJESTYS: 2. Kaula/rinta
-            piirraOsa(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
-
-            // JÄRJESTYS: 3. Keho
-            piirraOsa(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
-
-            // JÄRJESTYS: 4. Lähimmät jalat
-            ctx.save(); ctx.rotate((etujalkaKulma * Math.PI) / 180);
-            piirraOsa(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
-            ctx.restore();
-
-            ctx.save(); ctx.rotate((-takajalkaKulma * Math.PI) / 180);
-            piirraOsa(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
-            ctx.restore();
-
-            ctx.save(); ctx.rotate((-etujalkaKulma * Math.PI) / 180);
-            piirraOsa(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
-            ctx.restore();
-
-            // JÄRJESTYS: 5. Kauempi korva
-            piirraOsa(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
-
-            // JÄRJESTYS: 6. Pää
-            ctx.save(); ctx.rotate((paaKääntö * Math.PI) / 180);
-            piirraOsa(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
+            // 1. Häntä & kauimmat jalat
+            piirraOsaJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             
-            // JÄRJESTYS: 7. Silmät & nenä
-            piirraOsa(kuvat.nena_vari, kuvat.nena_viivat, "#222222");
-            piirraOsa(kuvat.silma_vari, kuvat.silma_viivat, silmanVari);
+            ctx.save();
+            ctx.translate(ox + 1300, oy + 700);
+            ctx.rotate(takajalkaKulma);
+            ctx.translate(-(ox + 1300), -(oy + 700));
+            piirraOsaJaViiva(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
+            ctx.restore();
+
+            // 2. Kaula/rinta & keho
+            piirraOsaJaViiva(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
+
+            // 3. Lähimmät jalat kiinnityspisteistä pyörivänä
+            ctx.save();
+            ctx.translate(ox + 800, oy + 700);
+            ctx.rotate(etujalkaKulma);
+            ctx.translate(-(ox + 800), -(oy + 700));
+            piirraOsaJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(ox + 1400, oy + 700);
+            ctx.rotate(-takajalkaKulma);
+            ctx.translate(-(ox + 1400), -(oy + 700));
+            piirraOsaJaViiva(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(ox + 700, oy + 700);
+            ctx.rotate(-etujalkaKulma);
+            ctx.translate(-(ox + 700), -(oy + 700));
+            piirraOsaJaViiva(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
+            ctx.restore();
+
+            // 4. Kauempi korva
+            piirraOsaJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
+
+            // 5. Pää, silmät, nenä & lähempi korva
+            ctx.save();
+            ctx.translate(ox + 600, oy + 400);
+            ctx.rotate(paaKääntö);
+            ctx.translate(-(ox + 600), -(oy + 400));
+
+            piirraOsaJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.nena_vari, kuvat.nena_viivat, "#222222");
+            piirraOsaJaViiva(kuvat.silma_vari, kuvat.silma_viivat, silmanVari);
             if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) ctx.drawImage(kuvat.pupilli_vari, ox, oy, w, h);
 
-            // JÄRJESTYS: 8. Lähempi korva
-            piirraOsa(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
+            piirraOsaJaViiva(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
             if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) ctx.drawImage(kuvat.korva_sisa_vari, ox, oy, w, h);
             ctx.restore();
 
@@ -682,7 +694,7 @@
                 if (this.tila === "kävelee") {
                     this.x += this.vx;
                     this.y += this.vy;
-                    this.liikeAskeltaja += 0.2; 
+                    this.liikeAskeltaja += 0.15; 
                     
                     if (this.x < 150 || this.x > 850) this.vx *= -1;
                     if (this.y < 280 || this.y > 450) this.vy *= -1;
@@ -776,7 +788,7 @@
         }
 
         function lataaPeli() {
-            let tallennettu = localStorage.getItem("laji_lauma_v7");
+            let tallennettu = localStorage.getItem("laji_lauma_v8");
             if (tallennettu) {
                 lauma = JSON.parse(tallennettu);
             } else {
