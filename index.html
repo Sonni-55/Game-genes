@@ -56,7 +56,7 @@
         .notif-item { margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
 
         #tarha-canvas {
-            background-color: #27ae60;
+            background-color: #1a1a24;
             border: 4px solid #3a3a52;
             border-radius: 8px;
             display: block;
@@ -441,7 +441,7 @@
                 let ennusteTeksti = laskePentuenusteJaTarkkuus(valittuUros.knownGenotype, valittuNaaras.knownGenotype);
 
                 ennusteDiv.innerHTML = `<b>Mahdolliset pentuvärit:</b><br> ${ennusteTeksti}<br><br>
-                <small style="color:#aaa;">Isän tunnetut geenit: B:${valittuUros.knownGenotype.B1}${valittuUros.knownGenotype.B2} O:${valittuUros.knownGenotype.O1}${valittuUros.knownGenotype.O2} N:${valittuUros.knownGenotype.N1}${valittuNaaras.knownGenotype.N2}<br>
+                <small style="color:#aaa;">Isän tunnetut geenit: B:${valittuUros.knownGenotype.B1}${valittuUros.knownGenotype.B2} O:${valittuUros.knownGenotype.O1}${valittuUros.knownGenotype.O2} N:${valittuUros.knownGenotype.N1}${valittuUros.knownGenotype.N2}<br>
                 Emän tunnetut geenit: B:${valittuNaaras.knownGenotype.B1}${valittuNaaras.knownGenotype.B2} O:${valittuNaaras.knownGenotype.O1}${valittuNaaras.knownGenotype.O2} N:${valittuNaaras.knownGenotype.N1}${valittuNaaras.knownGenotype.N2}</small>`;
             } else {
                 valitutTeksti.innerText = "Valitse 1 uros ja 1 naaras";
@@ -453,28 +453,15 @@
 
         function laskePentuenusteJaTarkkuus(g1, g2) {
             let varit = new Set();
-            let eparm = false;
-
-            // Arvioidaan tunnettujen alleelien pohjalta
-            if (g1.N1 === "n" && g2.N1 === "n") {
-                varit.add("Orange");
-            } else if (g1.N1 === "N" || g2.N1 === "N") {
+            if (g1.N1 === "n" && g2.N1 === "n") varit.add("Orange");
+            else if (g1.N1 === "N" || g2.N1 === "N") {
                 if (g1.B1 === "B" || g2.B1 === "B") varit.add("Black");
                 if (g1.B1 === "b" || g2.B1 === "b") varit.add("Brown");
                 if (g1.B1 === "b1" || g2.B1 === "b1") varit.add("Light");
-                if (g1.B2 === "_" || g2.B2 === "_") eparm = true;
-            } else {
-                eparm = true;
             }
-
             let varilista = Array.from(varit);
-            if (varilista.length === 0) varilista = ["Musta (Black)", "Ruskea (Brown)", "Oranssi (Orange)"];
-
-            if (eparm) {
-                return `Pentu voi olla ainakin: <span style="color:#f1c40f; font-weight:bold;">${varilista.join(", ")}</span> (Tuntemattomat alleelit saattavat mahdollistaa myös muita värejä).`;
-            } else {
-                return `Pentu on varmuudella jokin seuraavista: <span style="color:#f1c40f; font-weight:bold;">${varilista.join(", ")}</span>.`;
-            }
+            if (varilista.length === 0) varilista = ["Black", "Brown", "Orange"];
+            return `Pentu voi olla mahdollisesti: <span style="color:#f1c40f; font-weight:bold;">${varilista.join(", ")}</span> (riippuen tarkemmista geeniperinnöistä).`;
         }
 
         function suoritaRisteytys() {
@@ -482,6 +469,9 @@
             valittuNaaras.tiineysPaivat = 1;
             lisaaIlmoitus(`❤️ ${valittuNaaras.nimi} astutettiin uroksen ${valittuUros.nimi} kanssa! Tiineys alkanut.`);
             
+            // Tallennetaan tulevan pennun isä ja emä tilapäisesti naaraaseen syntymää varten
+            valittuNaaras.viimeisinIsa = valittuUros;
+
             valittuUros = null;
             valittuNaaras = null;
             
@@ -537,10 +527,11 @@
                         elain.tiineysPaivat = 0;
                         elain.cooldownPaivat = 7;
                         
+                        let isaehdokas = elain.viimeisinIsa || null;
                         let pentuGenetics = { B1: "B", B2: "b", O1: "O", O2: "o", N1: "N", N2: "n" };
-                        let uusiPentu = luoOlento("Pentu-" + (lauma.length + 1), Math.random() < 0.5 ? "♂" : "♀", pentuGenetics, "pentu", null, elain);
+                        let uusiPentu = luoOlento("Pentu-" + (lauma.length + 1), Math.random() < 0.5 ? "♂" : "♀", pentuGenetics, "pentu", isaehdokas, elain);
                         lauma.push(uusiPentu);
-                        lisaaIlmoitus(`🍼 ${elain.nimi} synnytti uuden pennun: ${uusiPentu.nimi}!`);
+                        lisaaIlmoitus(`🍼 ${elain.nimi} synnytti uuden pennun: ${uusiPentu.nimi} (Isä: ${uusiPentu.isaNimi})!`);
                     }
                 } else if (elain.sukupuoli === "♀" && elain.cooldownPaivat > 0) {
                     elain.cooldownPaivat -= 1;
@@ -550,29 +541,24 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti. Päivät päivitetty.");
         }
 
-        function tallennaPeli() { localStorage.setItem("laji_lauma_v6", JSON.stringify(lauma)); }
+        function tallennaPeli() { localStorage.setItem("laji_lauma_v7", JSON.stringify(lauma)); }
 
-        /* KORJATTU GEENI-VÄRILOGIIKKA JA ÄÄRIVIIVAT PÄÄLLE (LAYERS) */
+        /* TÄYDELLINEN KERROSTEN PIIRTO HALUTUSSA JÄRJESTYKSESSÄ (Z-INDEX / LAYERS) */
         function piirraKerrokset(ctx, elain, flipX, liikeAnimaatio = 0, asento = "seisoo") {
             if (!kaikkiKuvatLadattu) return;
 
             ctx.save();
             if (flipX) ctx.scale(-1, 1);
 
-            // GEENILOGIIKAN MÄÄRITYS: NN = B-väri, nn = O-väri, Nn = sekoitus
             let nGeeni = elain.realGenotype.N1 + elain.realGenotype.N2;
             let turkinVari = "#333333";
-
             if (nGeeni.includes("n") && !nGeeni.includes("N")) {
-                // Puhtaasti nn -> O-geenin väri
                 turkinVari = "#e67e22";
             } else if (nGeeni.includes("N") && !nGeeni.includes("n")) {
-                // Puhtaasti NN -> B-geenin väri
                 if (elain.realGenotype.B1 === "b") turkinVari = "#8b5a2b";
                 else if (elain.realGenotype.B1 === "b1") turkinVari = "#d3a27f";
                 else turkinVari = "#222222";
             } else {
-                // Nn -> Sekoitusväri
                 turkinVari = "#d35400";
             }
 
@@ -586,7 +572,7 @@
             const ox = -w / 2;
             const oy = -h / 2;
 
-            function piirraVari(variImg, vari) {
+            function piirraOsa(variImg, viivaImg, vari) {
                 if (variImg && variImg.complete && vari) {
                     ctx.save();
                     ctx.globalCompositeOperation = "source-over";
@@ -596,9 +582,6 @@
                     ctx.fillRect(ox, oy, w, h);
                     ctx.restore();
                 }
-            }
-
-            function piirraViiva(viivaImg) {
                 if (viivaImg && viivaImg.complete) {
                     ctx.save();
                     ctx.globalCompositeOperation = "source-over";
@@ -607,74 +590,61 @@
                 }
             }
 
-            // Asennon ja animaatioiden määrittely
-            let etujalkaKulma = (asento === "seisoo") ? Math.sin(liikeAnimaatio) * 20 : (asento === "istuu" ? 10 : -60);
-            let takajalkaKulma = (asento === "seisoo") ? -Math.sin(liikeAnimaatio) * 20 : (asento === "istuu" ? -80 : -70);
-
-            let kehoLasku = (asento === "makaa" || asento === "nukkuu") ? 250 : (asento === "istuu" ? 120 : 0);
-            let kehoKallistus = (asento === "istuu") ? -0.15 : 0;
-            let paaKääntö = (asento === "nukkuu") ? 0.35 : 0;
+            // Asennot ja kulmat yläosasta kääntyvänä
+            let etujalkaKulma = (asento === "seisoo") ? Math.sin(liikeAnimaatio) * 18 : (asento === "istuu" ? 10 : -45);
+            let takajalkaKulma = (asento === "seisoo") ? -Math.sin(liikeAnimaatio) * 18 : (asento === "istuu" ? -55 : -60);
+            let kehoLasku = (asento === "makaa" || asento === "nukkuu") ? 220 : (asento === "istuu" ? 100 : 0);
+            let kehoKallistus = (asento === "istuu") ? -0.12 : 0;
+            let paaKääntö = (asento === "nukkuu") ? 0.3 : 0;
 
             ctx.save();
             ctx.translate(0, kehoLasku);
             ctx.rotate(kehoKallistus);
 
-            // --- VAIHE 1: PIIRRETÄÄN KAIKKI VÄRIT ALTA ---
-            piirraVari(kuvat.kauempi_korva_vari, turkinVari);
-            piirraVari(kuvat.hanta_vari, turkinVari);
-
+            // JÄRJESTYS: 1. Häntä & kauimmat jalat
+            piirraOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             ctx.save(); ctx.rotate((takajalkaKulma * Math.PI) / 180);
-            piirraVari(kuvat.kauempi_takajalka_vari, turkinVari); ctx.restore();
+            piirraOsa(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
+            ctx.restore();
 
+            // JÄRJESTYS: 2. Kaula/rinta
+            piirraOsa(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
+
+            // JÄRJESTYS: 3. Keho
+            piirraOsa(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
+
+            // JÄRJESTYS: 4. Lähimmät jalat
             ctx.save(); ctx.rotate((etujalkaKulma * Math.PI) / 180);
-            piirraVari(kuvat.taaempi_etujalka_vari, turkinVari); ctx.restore();
+            piirraOsa(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
+            ctx.restore();
 
-            piirraVari(kuvat.keho_vari, turkinVari);
-            
+            ctx.save(); ctx.rotate((-takajalkaKulma * Math.PI) / 180);
+            piirraOsa(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
+            ctx.restore();
+
+            ctx.save(); ctx.rotate((-etujalkaKulma * Math.PI) / 180);
+            piirraOsa(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
+            ctx.restore();
+
+            // JÄRJESTYS: 5. Kauempi korva
+            piirraOsa(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
+
+            // JÄRJESTYS: 6. Pää
             ctx.save(); ctx.rotate((paaKääntö * Math.PI) / 180);
-            piirraVari(kuvat.kaula_rinta_vari, turkinVari);
-            piirraVari(kuvat.paa_vari, turkinVari);
-            piirraVari(kuvat.nena_vari, "#222222");
-            piirraVari(kuvat.silma_vari, silmanVari);
+            piirraOsa(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
+            
+            // JÄRJESTYS: 7. Silmät & nenä
+            piirraOsa(kuvat.nena_vari, kuvat.nena_viivat, "#222222");
+            piirraOsa(kuvat.silma_vari, kuvat.silma_viivat, silmanVari);
             if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) ctx.drawImage(kuvat.pupilli_vari, ox, oy, w, h);
-            piirraVari(kuvat.lahempi_korva_vari, turkinVari);
+
+            // JÄRJESTYS: 8. Lähempi korva
+            piirraOsa(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
             if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) ctx.drawImage(kuvat.korva_sisa_vari, ox, oy, w, h);
             ctx.restore();
 
-            ctx.save(); ctx.rotate((-takajalkaKulma * Math.PI) / 180);
-            piirraVari(kuvat.lahempi_takajalka_vari, turkinVari); ctx.restore();
-
-            ctx.save(); ctx.rotate((-etujalkaKulma * Math.PI) / 180);
-            piirraVari(kuvat.lahempi_etujalka_vari, turkinVari); ctx.restore();
-
-            // --- VAIHE 2: PIIRRETÄÄN KAIKKI ÄÄRIVIIVAT AINA LOPUKSI KAIKEN PÄÄLLE ---
-            piirraViiva(kuvat.kauempi_korva_viivat);
-            piirraViiva(kuvat.hanta_viivat);
-
-            ctx.save(); ctx.rotate((takajalkaKulma * Math.PI) / 180);
-            piirraViiva(kuvat.kauempi_takajalka_viivat); ctx.restore();
-
-            ctx.save(); ctx.rotate((etujalkaKulma * Math.PI) / 180);
-            piirraViiva(kuvat.taaempi_etujalka_viivat); ctx.restore();
-
-            piirraViiva(kuvat.keho_viivat);
-
-            ctx.save(); ctx.rotate((paaKääntö * Math.PI) / 180);
-            piirraViiva(kuvat.kaula_rinta_viivat);
-            piirraViiva(kuvat.paa_viivat);
-            piirraViiva(kuvat.nena_viivat);
-            piirraViiva(kuvat.silma_viivat);
-            piirraViiva(kuvat.lahempi_korva_viivat);
             ctx.restore();
-
-            ctx.save(); ctx.rotate((-takajalkaKulma * Math.PI) / 180);
-            piirraViiva(kuvat.lahempi_takajalka_viivat); ctx.restore();
-
-            ctx.save(); ctx.rotate((-etujalkaKulma * Math.PI) / 180);
-            piirraViiva(kuvat.lahempi_etujalka_viivat); ctx.restore();
-
-            ctx.restore(); // kehoLaskutarve restore
-            ctx.restore(); // main save restore
+            ctx.restore();
         }
 
         class TarhaOlento {
@@ -738,30 +708,25 @@
         }
 
         function piirraTaustaJaKoristeet(ctx, width, height) {
-            // Taivas
             let grad = ctx.createLinearGradient(0, 0, 0, 240);
             grad.addColorStop(0, "#1c2833");
             grad.addColorStop(1, "#5d6d7e");
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, width, 240);
 
-            // Nurmikko
             ctx.fillStyle = "#27ae60"; 
             ctx.fillRect(0, 240, width, height - 240);
 
-            // Ruohotupsut
             ctx.fillStyle = "#1e8449";
             for(let i=0; i<width; i+=40) {
                 ctx.fillRect(i + (i%3), 260 + (i%50), 3, 8);
             }
 
-            // Viltit
             ctx.fillStyle = "#e74c3c"; ctx.fillRect(150, 350, 80, 50);
             ctx.fillStyle = "#f1c40f"; ctx.fillRect(165, 365, 50, 20);
             
             ctx.fillStyle = "#3498db"; ctx.fillRect(720, 380, 85, 55);
 
-            // Ruokakipot
             ctx.fillStyle = "#bdc3c7";
             ctx.beginPath(); ctx.arc(290, 410, 14, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#e67e22";
@@ -811,7 +776,7 @@
         }
 
         function lataaPeli() {
-            let tallennettu = localStorage.getItem("laji_lauma_v6");
+            let tallennettu = localStorage.getItem("laji_lauma_v7");
             if (tallennettu) {
                 lauma = JSON.parse(tallennettu);
             } else {
