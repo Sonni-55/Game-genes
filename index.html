@@ -401,7 +401,8 @@
         let kauppaUros = null;
         let kauppaNaaras = null;
 
-        let loytyneetAlleelit = { B: ['B', 'b', 'b1'], O: ['O', 'o'], N: ['N', 'n'], D: ['D', 'd'], E: ['E', 'e', 'e1'], W: ['W', 'w'] };
+        // GEENIKIRJASTO ALKAA VAIN PERUSALLEELEILLA
+        let loytyneetAlleelit = { B: ['B'], O: ['O'], N: ['N'], D: ['D'], E: ['E'], W: ['w'] };
 
         const luonteet = ["Rauhallinen", "Vilkas", "Ujo", "Utelias"];
         const geenitMaaritykset = {
@@ -493,32 +494,39 @@
             return hinta;
         }
 
+        // KAUPAN HAHMOT ARVOTAAN LÖYTYNEIDEN GEENIEN MUKAAN (HARVOILLA MUTAATIOILLA)
+        function arvoKaupanAlleeli(lokus) {
+            let loydetyt = loytyneetAlleelit[lokus] || ["B"];
+            // Pienellä todennäköisyydellä (12%) voi tulla uusi mutaatio, jota ei vielä ole löydetty
+            let kaikkiMahdolliset = geenitMaaritykset[lokus].kaikki;
+            if (Math.random() < 0.12) {
+                let tuntemattomat = kaikkiMahdolliset.filter(a => !loydetyt.includes(a));
+                if (tuntemattomat.length > 0) {
+                    return tuntemattomat[Math.floor(Math.random() * tuntemattomat.length)];
+                }
+            }
+            return loydetyt[Math.floor(Math.random() * loydetyt.length)];
+        }
+
         function arvoKaupanValikoima() {
-            const genPoolB = ["BB", "Bb", "bb", "b1b1"];
-            const genPoolO = ["OO", "Oo", "oo"];
-            const genPoolN = ["NN", "Nn", "nn"];
-            const genPoolD = ["DD", "Dd", "dd"];
-            const genPoolE = ["EE", "Ee", "ee", "e1e1"];
-            const genPoolW = ["WW", "Ww", "ww"];
-            
             let gU = {
-                B: genPoolB[Math.floor(Math.random()*genPoolB.length)],
-                O: genPoolO[Math.floor(Math.random()*genPoolO.length)],
-                N: genPoolN[Math.floor(Math.random()*genPoolN.length)],
-                D: genPoolD[Math.floor(Math.random()*genPoolD.length)],
-                E: genPoolE[Math.floor(Math.random()*genPoolE.length)],
-                W: genPoolW[Math.floor(Math.random()*genPoolW.length)]
+                B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'),
+                O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'),
+                N: arvoKaupanAlleeli('N') + arvoKaupanAlleeli('N'),
+                D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'),
+                E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'),
+                W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W')
             };
             kauppaUros = luoOlento("Tuonti-Uros", "♂", gU, gU, "aikuinen", 4);
             kauppaUros.hinta = laskeElaimenHinta(kauppaUros);
 
             let gN = {
-                B: genPoolB[Math.floor(Math.random()*genPoolB.length)],
-                O: genPoolO[Math.floor(Math.random()*genPoolO.length)],
-                N: genPoolN[Math.floor(Math.random()*genPoolN.length)],
-                D: genPoolD[Math.floor(Math.random()*genPoolD.length)],
-                E: genPoolE[Math.floor(Math.random()*genPoolE.length)],
-                W: genPoolW[Math.floor(Math.random()*genPoolW.length)]
+                B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'),
+                O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'),
+                N: arvoKaupanAlleeli('N') + arvoKaupanAlleeli('N'),
+                D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'),
+                E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'),
+                W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W')
             };
             kauppaNaaras = luoOlento("Tuonti-Naaras", "♀", gN, gN, "aikuinen", 4);
             kauppaNaaras.hinta = laskeElaimenHinta(kauppaNaaras);
@@ -670,7 +678,7 @@
                 id: Date.now() + Math.floor(Math.random() * 10000),
                 nimi: nimi,
                 sukupuoli: sukupuoli,
-                ika: ika, // "pentu", "aikuinen", "seniori", "elakepolvi"
+                ika: ika,
                 ikaPaivat: ikaPaivat,
                 tiineysPaivat: 0,
                 palautumisPaivat: 0,
@@ -690,25 +698,36 @@
             return uusi;
         }
 
+        // KORJATTU FENOTYYPPI- JA DOMINANSSILOGIIKKA (E: E > e > e1)
         function haeFenotyyppiGeenit(elain) {
             let g = elain.realGenotype;
             let bOsa = "__", oOsa = "__";
             
             if (g.N === "NN") {
-                bOsa = g.B.includes("b1") ? "b1b1" : (g.B.includes("bb") ? "bb" : "B_");
+                bOsa = g.B.includes("b1") && !g.B.includes("B") && !g.B.includes("b") ? "b1b1" : (g.B.includes("bb") && !g.B.includes("B") ? "bb" : "B_");
                 oOsa = "__";
             } else if (g.N === "nn") {
                 bOsa = "__";
-                oOsa = g.O.includes("oo") ? "oo" : "O_";
+                oOsa = g.O.includes("oo") && !g.O.includes("O") ? "oo" : "O_";
             } else {
-                bOsa = g.B.includes("b1") ? "b1b1" : (g.B.includes("bb") ? "bb" : "B_");
-                oOsa = g.O.includes("oo") ? "oo" : "O_";
+                bOsa = g.B.includes("b1") && !g.B.includes("B") && !g.B.includes("b") ? "b1b1" : (g.B.includes("bb") && !g.B.includes("B") ? "bb" : "B_");
+                oOsa = g.O.includes("oo") && !g.O.includes("O") ? "oo" : "O_";
             }
 
             let nOsa = g.N;
             let dOsa = g.D === "dd" ? "dd" : "D_";
+            
+            // Korjattu E-lokuksen fenotyyppi (E > e > e1)
             let eAlleelit = g.E;
-            let eOsa = eAlleelit.includes("E") ? "E_" : eAlleelit;
+            let eOsa = "E_";
+            if (eAlleelit.includes("E")) {
+                eOsa = "E_";
+            } else if (eAlleelit.includes("e")) {
+                eOsa = eAlleelit.includes("e1") ? "e_" : "ee";
+            } else {
+                eOsa = "e1e1";
+            }
+
             let wOsa = g.W;
 
             return `B:${bOsa} O:${oOsa} N:${nOsa} D:${dOsa} E:${eOsa} W:${wOsa}`;
@@ -769,15 +788,15 @@
             paivitaTehtavatUI();
             paivitaKauppaUI();
             paivitaGeenikirjaUI();
-            localStorage.setItem("laji_lauma_v41", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v41", raha);
-            localStorage.setItem("laji_geenit_v41", JSON.stringify(loytyneetAlleelit));
-            localStorage.setItem("laji_tehtavat_v41", JSON.stringify(paivittaisetTehtavat));
-            localStorage.setItem("laji_kauppa_uros_v41", JSON.stringify(kauppaUros));
-            localStorage.setItem("laji_kauppa_naaras_v41", JSON.stringify(kauppaNaaras));
-            localStorage.setItem("laji_max_koko_v41", maxLaumaKoko);
-            localStorage.setItem("laji_pentuhuone_v41", omistaakoPentuhuone);
-            localStorage.setItem("laji_analysaattori_v41", omistaakoAnalysaattori);
+            localStorage.setItem("laji_lauma_v42", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v42", raha);
+            localStorage.setItem("laji_geenit_v42", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_tehtavat_v42", JSON.stringify(paivittaisetTehtavat));
+            localStorage.setItem("laji_kauppa_uros_v42", JSON.stringify(kauppaUros));
+            localStorage.setItem("laji_kauppa_naaras_v42", JSON.stringify(kauppaNaaras));
+            localStorage.setItem("laji_max_koko_v42", maxLaumaKoko);
+            localStorage.setItem("laji_pentuhuone_v42", omistaakoPentuhuone);
+            localStorage.setItem("laji_analysaattori_v42", omistaakoAnalysaattori);
         }
 
         function paivitaLaumaUI() {
@@ -1033,7 +1052,6 @@
                 }
             });
 
-            // Satunnaistapahtumat uuden päivän kunniaksi
             let satunnaisetTapahtumatTeksti = "";
             let eventArpa = Math.random();
             if (eventArpa < 0.25) {
@@ -1043,7 +1061,7 @@
             } else if (eventArpa < 0.45) {
                 satunnaisetTapahtumatTeksti = `🌟 Geenitutkija vieraili luonasi ja antoi vinkkejä jalostukseen!`;
             } else {
-                satunnaisetTapahtumatTeksti = ` peaceful päivä aitauksessa.`;
+                satunnaisetTapahtumatTeksti = ` Rauhallinen päivä aitauksessa.`;
             }
 
             arvoPaivittaisetTehtavat();
@@ -1199,15 +1217,15 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v41");
-            let tRaha = localStorage.getItem("laji_raha_v41");
-            let tGeenit = localStorage.getItem("laji_geenit_v41");
-            let tTehtavat = localStorage.getItem("laji_tehtavat_v41");
-            let tKauppaU = localStorage.getItem("laji_kauppa_uros_v41");
-            let tKauppaN = localStorage.getItem("laji_kauppa_naaras_v41");
-            let tMaxKoko = localStorage.getItem("laji_max_koko_v41");
-            let tPentuhuone = localStorage.getItem("laji_pentuhuone_v41");
-            let tAnalysaattori = localStorage.getItem("laji_analysaattori_v41");
+            let tLauma = localStorage.getItem("laji_lauma_v42");
+            let tRaha = localStorage.getItem("laji_raha_v42");
+            let tGeenit = localStorage.getItem("laji_geenit_v42");
+            let tTehtavat = localStorage.getItem("laji_tehtavat_v42");
+            let tKauppaU = localStorage.getItem("laji_kauppa_uros_v42");
+            let tKauppaN = localStorage.getItem("laji_kauppa_naaras_v42");
+            let tMaxKoko = localStorage.getItem("laji_max_koko_v42");
+            let tPentuhuone = localStorage.getItem("laji_pentuhuone_v42");
+            let tAnalysaattori = localStorage.getItem("laji_analysaattori_v42");
 
             if (tLauma) lauma = JSON.parse(tLauma);
             if (tRaha) raha = parseInt(tRaha);
