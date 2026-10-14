@@ -88,9 +88,6 @@
             border: 4px solid #3a3a52;
             border-radius: 8px;
             display: block;
-            width: 100%;
-            max-width: 1200px;
-            height: auto;
             margin: 10px auto;
         }
 
@@ -181,9 +178,9 @@
 
     <!-- SIVU 3: TARHANÄKYMÄ -->
     <div id="tarha-sivu" class="page">
-        <h2>Laaja Responsiivinen Tepsuttelutarha</h2>
+        <h2>Pieni Tepsuttelutarha</h2>
         <p>Kaikki laumasi hahmot liikkuvat ja puuhailevat täällä vapaasti.</p>
-        <canvas id="tarha-canvas" width="1000" height="550"></canvas>
+        <canvas id="tarha-canvas" width="900" height="500"></canvas>
     </div>
 
     <script>
@@ -243,6 +240,12 @@
         let tarhaOlennot = [];
         let tarhaAnimaatioId = null;
         const luonteet = ["Rauhallinen", "Vilkas", "Ujo", "Utelias"];
+
+        // Apucanvas maskauksille, ettei sotketa pää-canvaksen kankaita
+        const offscreenCanvas = document.createElement("canvas");
+        offscreenCanvas.width = 2163;
+        offscreenCanvas.height = 1361;
+        const offCtx = offscreenCanvas.getContext("2d");
 
         function avaaModal() { document.getElementById("ilmoitus-modal").style.display = "block"; }
         function suljeModal() { document.getElementById("ilmoitus-modal").style.display = "none"; }
@@ -313,16 +316,17 @@
                 D: arvoAlleeli(isag.D || "Dd") + arvoAlleeli(emag.D || "Dd")
             };
 
-            let eyeColor = arvoVariVanhemmilta(isaObj ? isaObj.eyeColor : "#8B4513", emaObj ? emaObj.eyeColor : "#D2691E");
-            let skinColor = arvoVariVanhemmilta(isaObj ? isaObj.skinColor : "#FFB6C1", emaObj ? emaObj.skinColor : "#DDA0DD");
+            let eyeColor = arvoVariVanhemmilta(isaObj ? isaObj.eyeColor : "#2ecc71", emaObj ? emaObj.eyeColor : "#3498db");
+            let skinColor = arvoVariVanhemmilta(isaObj ? isaObj.skinColor : "#ffb6c1", emaObj ? emaObj.skinColor : "#e8a7a1");
 
+            // Generoidaan kiinteät Calico-täplät Nn-geenille, jotka säilyvät asennosta riippumatta
             let calicoSpots = [];
             if (realG.N === "Nn") {
-                for(let i=0; i<6; i++) {
+                for(let i = 0; i < 8; i++) {
                     calicoSpots.push({
-                        x: Math.random() * 1600 + 300,
-                        y: Math.random() * 800 + 300,
-                        r: Math.random() * 80 + 40
+                        x: Math.random() * 1400 + 300,
+                        y: Math.random() * 700 + 300,
+                        r: Math.random() * 90 + 40
                     });
                 }
             }
@@ -379,7 +383,7 @@
                     <div class="kortti-laajennus">
                         <p><b>Vanhemmat:</b> ${elain.isaNimi} & ${elain.emaNimi}</p>
                         <p><b>Genotyyppi:</b> ${genesStr}</p>
-                        <p><b>Silmät / Nahka:</b> <span style="color:${elain.eyeColor}">■ Silmät</span> | <span style="color:${elain.skinColor}">■ Nahka</span></p>
+                        <p><b>Värit:</b> <span style="color:${elain.eyeColor}; font-weight:bold;">■ Silmät</span> | <span style="color:${elain.skinColor}; font-weight:bold;">■ Iho/Nenä</span></p>
                         <p><b>Tila:</b> ${elain.sukupuoli === '♀' && elain.tiineysPaivat > 0 ? 'Tiineenä (' + elain.tiineysPaivat + '/2 pv)' : 'Normaali'}</p>
                         <p><label><b>Muokkaa nimeä:</b> <input type="text" value="${elain.nimi}" oninput="muutaNimea(${elain.id}, this.value)" style="background:#111; color:white; border:1px solid #555; padding:2px 5px; border-radius:4px; width:120px;" onclick="event.stopPropagation()"></label></p>
                     </div>
@@ -537,7 +541,7 @@
                 let inb = LaskeSyvällinenInbreeding(valittuUros, valittuNaaras);
                 varoitusDiv.innerText = inb > 0 ? `⚠️ Sukutaulun sisäsiittoisuusarvio: ${inb}%` : "Ei havaittua sukulaisuutta (0%).";
                 breedBtn.disabled = false;
-                ennusteDiv.innerHTML = `<b>Mahdolliset pentuvärit:</b> <span style="color:#f1c40f; font-weight:bold;">Musta, Ruskea, Oranssi, Kermanvaalea, Calico (Nn)</span>`;
+                ennusteDiv.innerHTML = `<b>Mahdolliset pentuvärit:</b> <span style="color:#f1c40f; font-weight:bold;">Musta, Suklaa, Oranssi, Kermanvaalea, Calico (Nn)</span>`;
             } else {
                 varoitusDiv.innerText = "";
                 ennusteDiv.innerHTML = "<b>Mahdolliset pentuvärit / fenotyypit:</b> Valitse vanhemmat nähdäksesi ennusteen.";
@@ -583,8 +587,9 @@
             lisaaIlmoitus("☀️ Uusi päivä koitti.");
         }
 
-        function tallennaPeli() { localStorage.setItem("laji_lauma_v14", JSON.stringify(lauma)); }
+        function tallennaPeli() { localStorage.setItem("laji_lauma_v15", JSON.stringify(lauma)); }
 
+        /* TÄYSI PIIRTOJÄRJESTYS, JOSSA ÄÄRIVIIVAT, SILMÄT JA IHO NÄKYVÄT VIRHEETTÖMÄSTI */
         function piirraKerrokset(ctx, elain, flipX, liikeAnimaatio = 0, asento = "seisoo") {
             if (!kaikkiKuvatLadattu) return;
 
@@ -592,9 +597,9 @@
             if (flipX) ctx.scale(-1, 1);
 
             let g = elain.realGenotype;
-            let turkinVari = "#333333";
+            let turkinVari = "#222222";
             let onkoDiluutio = g.D.includes("d");
-            let onkoOranssi = g.O.includes("o") && !g.O.includes("O");
+            let onkoOranssi = (g.O === "oo" || g.O === "Oo");
 
             if (onkoOranssi) {
                 turkinVari = onkoDiluutio ? "#f5deb3" : "#e67e22";
@@ -612,32 +617,35 @@
             const ox = -w / 2;
             const oy = -h / 2;
 
-            function piirraOsaJaViiva(variImg, viivaImg, vari) {
+            function piirraOsaJaViiva(variImg, viivaImg, vari, onkoKeho = false) {
                 if (variImg && variImg.complete && vari) {
-                    ctx.save();
-                    ctx.globalCompositeOperation = "source-over";
-                    ctx.drawImage(variImg, ox, oy, w, h);
-                    ctx.globalCompositeOperation = "source-in";
-                    ctx.fillStyle = vari;
-                    ctx.fillRect(ox, oy, w, h);
+                    // Käytetään erillistä puskuricanvasta maskaukselle, ettei pää-canvas mene rikki
+                    offCtx.clearRect(0, 0, w, h);
+                    offCtx.globalCompositeOperation = "source-over";
+                    offCtx.drawImage(variImg, 0, 0, w, h);
+                    
+                    offCtx.globalCompositeOperation = "source-in";
+                    offCtx.fillStyle = vari;
+                    offCtx.fillRect(0, 0, w, h);
 
-                    if (elain.calicoSpots && elain.calicoSpots.length > 0) {
-                        ctx.globalCompositeOperation = "source-atop";
-                        ctx.fillStyle = onkoOranssi ? "#222222" : "#e67e22";
-                        elain.calicoSpots.forEach(s => {
-                            ctx.beginPath();
-                            ctx.arc(s.x + ox, s.y + oy, s.r, 0, Math.PI * 2);
-                            ctx.fill();
+                    // Jos piirretään kehoa ja eläimellä on Nn (Calico), lisätään täplät suoraan tähän osaan
+                    if (onkoKeho && elain.realGenotype.N === "Nn" && elain.calicoSpots) {
+                        offCtx.globalCompositeOperation = "source-atop";
+                        offCtx.fillStyle = onkoOranssi ? "#222222" : "#e67e22";
+                        elain.calicoSpots.forEach(spot => {
+                            offCtx.beginPath();
+                            offCtx.arc(spot.x, spot.y, spot.r, 0, Math.PI * 2);
+                            offCtx.fill();
                         });
                     }
 
-                    ctx.restore();
+                    // Piirretään valmis väritaso pääkankaalle
+                    ctx.drawImage(offscreenCanvas, ox, oy, w, h);
                 }
+
+                // Piirretään mustat ÄÄRIVIIVAT puhtaasti kaiken päälle
                 if (viivaImg && viivaImg.complete) {
-                    ctx.save();
-                    ctx.globalCompositeOperation = "source-over";
                     ctx.drawImage(viivaImg, ox, oy, w, h);
-                    ctx.restore();
                 }
             }
 
@@ -651,15 +659,20 @@
             ctx.translate(0, kehoLasku);
             ctx.rotate(kehoKallistus);
 
+            // 1. Häntä & kauimmat jalat
             piirraOsaJaViiva(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
             ctx.save();
             ctx.translate(ox + 1300, oy + 700); ctx.rotate(takajalkaKulma); ctx.translate(-(ox + 1300), -(oy + 700));
             piirraOsaJaViiva(kuvat.kauempi_takajalka_vari, kuvat.kauempi_takajalka_viivat, turkinVari);
             ctx.restore();
 
+            // 2. Kaula/rinta
             piirraOsaJaViiva(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
-            piirraOsaJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari);
 
+            // 3. Keho (Calico-pisteet mukana)
+            piirraOsaJaViiva(kuvat.keho_vari, kuvat.keho_viivat, turkinVari, true);
+
+            // 4. Lähimmät jalat
             ctx.save();
             ctx.translate(ox + 800, oy + 700); ctx.rotate(etujalkaKulma); ctx.translate(-(ox + 800), -(oy + 700));
             piirraOsaJaViiva(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
@@ -675,20 +688,34 @@
             piirraOsaJaViiva(kuvat.taaempi_etujalka_vari, kuvat.taaempi_etujalka_viivat, turkinVari);
             ctx.restore();
 
+            // 5. Kauempi korva
             piirraOsaJaViiva(kuvat.kauempi_korva_vari, kuvat.kauempi_korva_viivat, turkinVari);
 
+            // 6. Pää, silmät, pupillit, nenä & lähempi korva
             ctx.save();
             ctx.translate(ox + 600, oy + 400); ctx.rotate(paaKääntö); ctx.translate(-(ox + 600), -(oy + 400));
             piirraOsaJaViiva(kuvat.paa_vari, kuvat.paa_viivat, turkinVari);
-            piirraOsaJaViiva(kuvat.nena_vari, kuvat.nena_viivat, elain.skinColor || "#FFB6C1");
 
-            piirraOsaJaViiva(kuvat.silma_vari, kuvat.silma_viivat, elain.eyeColor || "#8B4513");
+            // Nenä ihonvärillä
+            piirraOsaJaViiva(kuvat.nena_vari, kuvat.nena_viivat, elain.skinColor || "#ffb6c1");
+
+            // Silmät (iiris värjätään, pupilli omana viivanaan)
+            piirraOsaJaViiva(kuvat.silma_vari, kuvat.silma_viivat, elain.eyeColor || "#2ecc71");
             if (kuvat.pupilli_vari && kuvat.pupilli_vari.complete) {
                 ctx.drawImage(kuvat.pupilli_vari, ox, oy, w, h);
             }
 
+            // Korvat sisäosalla
             piirraOsaJaViiva(kuvat.lahempi_korva_vari, kuvat.lahempi_korva_viivat, turkinVari);
-            if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) ctx.drawImage(kuvat.korva_sisa_vari, ox, oy, w, h);
+            if (kuvat.korva_sisa_vari && kuvat.korva_sisa_vari.complete) {
+                offCtx.clearRect(0, 0, w, h);
+                offCtx.drawImage(kuvat.korva_sisa_vari, 0, 0, w, h);
+                offCtx.globalCompositeOperation = "source-in";
+                offCtx.fillStyle = elain.skinColor || "#ffb6c1";
+                offCtx.fillRect(0, 0, w, h);
+                ctx.drawImage(offscreenCanvas, ox, oy, w, h);
+            }
+
             ctx.restore();
 
             ctx.restore();
@@ -698,8 +725,8 @@
         class TarhaOlento {
             constructor(data) {
                 this.data = data;
-                this.x = Math.random() * 700 + 150;
-                this.y = Math.random() * 180 + 320; 
+                this.x = Math.random() * 600 + 150;
+                this.y = Math.random() * 150 + 280; 
                 this.vx = (Math.random() - 0.5) * 1.2;
                 this.vy = (Math.random() - 0.5) * 0.6; 
                 this.liikeAskeltaja = Math.random() * 100;
@@ -722,14 +749,14 @@
                     this.y += this.vy;
                     this.liikeAskeltaja += 0.12; 
                     if (this.x < 100 || this.x > canvasW - 100) this.vx *= -1;
-                    if (this.y < 280 || this.y > canvasH - 50) this.vy *= -1;
+                    if (this.y < 250 || this.y > canvasH - 50) this.vy *= -1;
                 }
             }
             piirra(ctx) {
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 let flip = (this.vx < 0);
-                let syvyysKerroin = 0.7 + (this.y / 550) * 0.4;
+                let syvyysKerroin = 0.7 + (this.y / 500) * 0.35;
                 if (this.data.ika === "pentu") syvyysKerroin *= 0.6;
                 ctx.scale(syvyysKerroin, syvyysKerroin);
                 piirraKerrokset(ctx, this.data, flip, this.tila === "kävelee" ? this.liikeAskeltaja : 0, this.tila);
@@ -742,36 +769,33 @@
         }
 
         function piirraTausta(ctx, w, h) {
-            let grad = ctx.createLinearGradient(0, 0, 0, 220);
-            grad.addColorStop(0, "#1c2833"); grad.addColorStop(1, "#5d6d7e");
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, w, 220);
+            // Taivas & Maisema
+            let grad = ctx.createLinearGradient(0, 0, 0, 200);
+            grad.addColorStop(0, "#1c2833"); grad.addColorStop(1, "#4a5a6a");
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, w, 200);
 
-            ctx.fillStyle = "#27ae60"; ctx.fillRect(0, 220, w, h - 220);
+            // Nurmikko
+            ctx.fillStyle = "#27ae60"; ctx.fillRect(0, 200, w, h - 200);
 
-            ctx.fillStyle = "#e74c3c"; ctx.fillRect(100, 320, 70, 45);
-            ctx.fillStyle = "#f1c40f"; ctx.fillRect(112, 332, 45, 20);
+            // Mökki/Lato & Vesikippo (monipuolinen tausta)
+            ctx.fillStyle = "#c0392b"; ctx.fillRect(80, 140, 120, 80);
+            ctx.fillStyle = "#7f8c8d"; ctx.beginPath(); ctx.moveTo(70, 140); ctx.lineTo(140, 90); ctx.lineTo(210, 140); ctx.fill();
+            ctx.fillStyle = "#f39c12"; ctx.fillRect(125, 175, 30, 45);
 
-            ctx.fillStyle = "#bdc3c7"; ctx.beginPath(); ctx.arc(260, 370, 14, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc(260, 370, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#95a5a6"; ctx.beginPath(); ctx.arc(300, 320, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(300, 320, 12, 0, Math.PI * 2); ctx.fill();
         }
 
         function paivitaTarhaLoop() {
             const canvas = document.getElementById("tarha-canvas");
             if (!canvas) return;
             const ctx = canvas.getContext("2d");
-            
-            let w = Math.min(window.innerWidth - 40, 1100);
-            let h = window.innerWidth < 768 ? 450 : 550;
-            if (canvas.width !== w || canvas.height !== h) {
-                canvas.width = w;
-                canvas.height = h;
-            }
 
-            ctx.clearRect(0, 0, w, h);
-            piirraTausta(ctx, w, h);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            piirraTausta(ctx, canvas.width, canvas.height);
 
             tarhaOlennot.sort((a, b) => a.y - b.y);
-            tarhaOlennot.forEach(olento => { olento.paivita(w, h); olento.piirra(ctx); });
+            tarhaOlennot.forEach(olento => { olento.paivita(canvas.width, canvas.height); olento.piirra(ctx); });
             
             tarhaAnimaatioId = requestAnimationFrame(paivitaTarhaLoop);
         }
@@ -800,7 +824,7 @@
         }
 
         function lataaPeli() {
-            let tallennettu = localStorage.getItem("laji_lauma_v14");
+            let tallennettu = localStorage.getItem("laji_lauma_v15");
             if (tallennettu) {
                 lauma = JSON.parse(tallennettu);
             }
