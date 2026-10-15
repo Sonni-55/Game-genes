@@ -263,7 +263,7 @@
             <div class="breed-center-box">
                 <button id="breed-btn" class="action-btn" disabled onclick="suoritaRisteytys()">BREED</button>
                 <div id="inbreeding-varoitus" style="color: #e74c3c; font-weight: bold; font-size: 11px;"></div>
-                <div id="pennun-ennuste" style="font-size: 11px; color: #3498db; background:#1a1a24; padding:6px; border-radius:4px; width:100%;">
+                <div id="pennun-ennuste" style="font-size: 11px; color: #3498db; background:#1a1a24; padding:6px; border-radius:4px; width:100%; text-align:left; white-space:pre-line;">
                     Valitse vanhemmat ennustetta varten
                 </div>
                 <div style="display:flex; gap:4px; font-size:10px; color:#aaa; justify-content:center; flex-wrap:wrap;">
@@ -437,7 +437,6 @@
         let kauppaUros = null;
         let kauppaNaaras = null;
 
-        // Kirjaston seuranta - alussa tyhjä, jotta kaikki ovat lukittuina kunnes niitä löydetään
         let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [] };
         let uudetAlleelitIlmoitus = {};
 
@@ -651,7 +650,7 @@
         function arvoKaupanAlleeli(lokus) {
             let loydetyt = loytyneetAlleelit[lokus] || [];
             let kaikkiMahdolliset = geenitMaaritykset[lokus].kaikki;
-            if (loydetyt.length === 0 || Math.random() < 0.15) {
+            if (loydetyt.length === 0 || Math.random() < 0.2) {
                 return kaikkiMahdolliset[Math.floor(Math.random() * kaikkiMahdolliset.length)];
             }
             return loydetyt[Math.floor(Math.random() * loydetyt.length)];
@@ -743,13 +742,32 @@
         }
 
         function tarkistaJaLisaaAlleelit(elain) {
-            let g = elain.realGenotype;
-            tarkistaYksittainenAlleeli('B', g.B[0]); tarkistaYksittainenAlleeli('B', g.B[1]);
-            tarkistaYksittainenAlleeli('O', g.O[0]); tarkistaYksittainenAlleeli('O', g.O[1]);
-            tarkistaYksittainenAlleeli('N', g.N);
-            tarkistaYksittainenAlleeli('D', g.D[0]); tarkistaYksittainenAlleeli('D', g.D[1]);
-            tarkistaYksittainenAlleeli('E', g.E[0]); tarkistaYksittainenAlleeli('E', g.E[1]);
-            tarkistaYksittainenAlleeli('W', g.W[0]); tarkistaYksittainenAlleeli('W', g.W[1]);
+            let tunnetut = haeTunnetutGeenit(elain);
+
+            if (tunnetut.B !== "B_") {
+                if (tunnetut.B === "b1b1") tarkistaYksittainenAlleeli('B', 'b1');
+                else if (tunnetut.B === "bb") tarkistaYksittainenAlleeli('B', 'b');
+                else { for (let char of tunnetut.B) { if (char !== '_') tarkistaYksittainenAlleeli('B', char); } }
+            }
+
+            if (tunnetut.O !== "O_") {
+                if (tunnetut.O === "oo") tarkistaYksittainenAlleeli('O', 'o');
+                else { for (let char of tunnetut.O) { if (char !== '_') tarkistaYksittainenAlleeli('O', char); } }
+            }
+
+            if (tunnetut.N !== "N_") tarkistaYksittainenAlleeli('N', tunnetut.N);
+
+            if (tunnetut.D === "dd") tarkistaYksittainenAlleeli('D', 'd');
+            else if (omistaakoAnalysaattori) { for (let char of tunnetut.D) { if (char !== '_') tarkistaYksittainenAlleeli('D', char); } }
+
+            if (tunnetut.E !== "E_") {
+                if (tunnetut.E === "e1e1") tarkistaYksittainenAlleeli('E', 'e1');
+                else if (tunnetut.E === "ee") tarkistaYksittainenAlleeli('E', 'e');
+                else { for (let char of tunnetut.E) { if (char !== '_') tarkistaYksittainenAlleeli('E', char); } }
+            }
+
+            if (tunnetut.W !== "ww") tarkistaYksittainenAlleeli('W', 'W');
+            else tarkistaYksittainenAlleeli('W', 'w');
         }
 
         function tarkistaYksittainenAlleeli(lokus, al) {
@@ -827,6 +845,7 @@
                 isMelanistic: isMelanistic,
                 luonne: luonteet[Math.floor(Math.random() * luonteet.length)],
                 realGenotype: realG,
+                paljastetutGeenit: {}, // Tähän tallentuvat päätellyt alleelit!
                 eyeColor: eyeColor,
                 skinColor: skinColor,
                 calicoSpots: calicoSpots,
@@ -845,41 +864,72 @@
             return uusi;
         }
 
+        // PALAUTTAA NÄKYVÄT FENOTYYPPIGEENIT ELÄIMELLE
         function haeFenotyyppiGeenit(elain) {
-            let g = elain.realGenotype;
-            let bOsa = "B_", oOsa = "O_";
-            
-            if (g.N === "NN") {
-                if (g.B === "b1b1") bOsa = "b1b1";
-                else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
-                else bOsa = "B_";
-                oOsa = "__";
-            } else if (g.N === "nn") {
-                bOsa = "__";
-                if (g.O === "oo") oOsa = "oo";
-                else oOsa = "O_";
-            } else {
-                if (g.B === "b1b1") bOsa = "b1b1";
-                else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
-                else bOsa = "B_";
-
-                if (g.O === "oo") oOsa = "oo";
-                else oOsa = "O_";
-            }
-
-            let nOsa = g.N;
-            let dOsa = g.D === "dd" ? "dd" : "D_";
-            
-            let eOsa = "E_";
-            if (g.E.includes("E")) eOsa = "E_";
-            else if (g.E === "e1e1") eOsa = "e1e1";
-            else if (g.E === "ee") eOsa = "ee";
-            else eOsa = "e_";
-
-            let wOsa = g.W === "ww" ? "ww" : (g.W === "WW" ? "WW" : "Ww");
+            let tunnetut = haeTunnetutGeenit(elain);
             let mutaatioTeksti = elain.isAlbino ? " [ALBINO]" : (elain.isMelanistic ? " [MELANISTINEN]" : "");
 
-            return `B:${bOsa} O:${oOsa} N:${nOsa} D:${dOsa} E:${eOsa} W:${wOsa}${mutaatioTeksti}`;
+            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W}${mutaatioTeksti}`;
+        }
+
+        // HAKEE ELÄIMELLE PALJASTETUT/PÄÄTELDYT GEENIT
+        function haeTunnetutGeenit(elain) {
+            if (omistaakoAnalysaattori) return elain.realGenotype;
+            
+            let g = elain.realGenotype;
+            let p = elain.paljastetutGeenit || {};
+
+            let bOsa = p.B || (g.N === "NN" ? (g.B === "b1b1" ? "b1b1" : (g.B.startsWith("b") ? "bb" : "B_")) : "B_");
+            let oOsa = p.O || (g.N === "nn" ? (g.O === "oo" ? "oo" : "O_") : "__");
+            let nOsa = p.N || g.N;
+            let dOsa = p.D || (g.D === "dd" ? "dd" : "D_");
+            let eOsa = p.E || (g.E.includes("E") ? "E_" : (g.E === "e1e1" ? "e1e1" : "e_"));
+            let wOsa = p.W || (g.W === "ww" ? "ww" : (g.W === "WW" ? "WW" : "Ww"));
+
+            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa };
+        }
+
+        // AITO GENETIIKAN PÄÄTTELYMEKANISMI: PÄÄTTELEE VANHEMPIEN PIILOGEENIT PENNUSTA
+        function paatteleVanhempienGeenit(pentu, isa, ema) {
+            if (!isa || !ema) return;
+
+            let pg = pentu.realGenotype;
+
+            [isa, ema].forEach(vanhempi => {
+                if (!vanhempi.paljastetutGeenit) vanhempi.paljastetutGeenit = {};
+                let vg = vanhempi.realGenotype;
+                let uuttaLoydetty = false;
+
+                // 1. Jos pentu on oranssilokus (nn) tai calico (Nn) -> vanhemmalla On pakko olla 'n'-alleeli
+                if ((pg.N === "nn" || pg.N === "Nn") && vg.N === "NN") {
+                    vanhempi.paljastetutGeenit.N = "Nn";
+                    uuttaLoydetty = true;
+                }
+
+                // 2. Jos vanhemmalla näkyy oranssi (O_) ja pentu saa 'o' -> paljastetaan Oranssigeeni (Oo)
+                if (pg.O.includes("o") && vg.O === "Oo" && !vanhempi.paljastetutGeenit.O) {
+                    vanhempi.paljastetutGeenit.O = "Oo";
+                    uuttaLoydetty = true;
+                }
+
+                // 3. Jos pentu on diluutio (dd) -> molempien vanhempien täytyy kantaa 'd'-alleelia (Dd)
+                if (pg.D === "dd" && vg.D === "Dd" && !vanhempi.paljastetutGeenit.D) {
+                    vanhempi.paljastetutGeenit.D = "Dd";
+                    uuttaLoydetty = true;
+                }
+
+                // 4. Jos pentu on resessiivinen korva (e1e1/ee) -> vanhempi kantaa kyseistä korvageeniä
+                if ((pg.E === "e1e1" || pg.E === "ee") && vg.E.includes("E") && !vanhempi.paljastetutGeenit.E) {
+                    vanhempi.paljastetutGeenit.E = vg.E;
+                    uuttaLoydetty = true;
+                }
+
+                if (uuttaLoydetty) {
+                    vanhempi.uusiGeeniHuomio = true; // Laitetaan huutomerkki kortin kulmaan!
+                    tarkistaJaLisaaAlleelit(vanhempi);
+                    lisaaIlmoitus(`🧬 Piilogeeni paljastui! Eläimen ${vanhempi.nimi} genotyyppi selvisi pennun perusteella!`);
+                }
+            });
         }
 
         function laskeSisaisiittoisuus(uros, naaras) {
@@ -895,71 +945,60 @@
             return { prosentti, teksti };
         }
 
-        // TARKEMPI JALOSTUSENNUSTE
         function paivitaEnnuste() {
             if (!valittuUros || !valittuNaaras) {
                 document.getElementById("pennun-ennuste").innerText = `Valitse vanhemmat ennustetta varten`;
                 return;
             }
 
-            let ug = valittuUros.realGenotype;
-            let ng = valittuNaaras.realGenotype;
+            let ut = haeTunnetutGeenit(valittuUros);
+            let nt = haeTunnetutGeenit(valittuNaaras);
             let ennusteet = [];
 
-            // Perusvärit (B-lokus)
-            let bU = ug.B; let bN = ng.B;
-            if (bU.includes('b1') && bN.includes('b1') && !bU.includes('B') && !bN.includes('B')) {
-                ennusteet.push("Perusväri: Varmasti kaneli (b1b1)");
-            } else if (bU.includes('b') && bN.includes('b') && !bU.includes('B') && !bN.includes('B') && !bU.includes('1') && !bN.includes('1')) {
-                ennusteet.push("Perusväri: Varmasti ruskea (bb)");
-            } else if (!bU.includes('b') && !bN.includes('b') && !bU.includes('1') && !bN.includes('1')) {
-                ennusteet.push("Perusväri: Varmasti musta (BB)");
-            } else {
-                ennusteet.push("Perusväri: Musta, ruskea tai kaneli mahdollisia");
-            }
-
-            // Oranssi / Punainen (O-lokus)
-            if (ug.O === "oo" && ng.O === "oo") {
-                ennusteet.push("Oranssi: Varmasti oranssi/punainen (oo)");
-            } else if (ug.O.includes("O") && ng.O.includes("O")) {
-                ennusteet.push("Oranssi: Ei oranssigeeniä pinnalla (OO)");
-            } else {
-                ennusteet.push("Oranssi: Oransseja/kermanvaaleita pentuja voi syntyä");
-            }
-
-            // Kuvio (N-lokus)
-            if (ug.N === "NN" && ng.N === "nn" || ug.N === "nn" && ng.N === "NN") {
+            if ((ut.N === "NN" && nt.N === "nn") || (ut.N === "nn" && nt.N === "NN")) {
                 ennusteet.push("Kuvio: Varmasti kilpikonnakuvio / Calico (Nn)");
-            } else if (ug.N === "nn" && ng.N === "nn") {
-                ennusteet.push("Kuvio: Varmasti oranssilokus (nn)");
-            } else if (ug.N === "NN" && ng.N === "NN") {
+                ennusteet.push("Oranssi: Oranssigeeni näkyy Calico-läikkinä kaikilla pennuilla");
+            } else if (ut.N === "NN" && nt.N === "NN") {
                 ennusteet.push("Kuvio: Perusväri, ei kilpikonnakuviota (NN)");
-            }
-
-            // Diluutio (D-lokus)
-            if (ug.D === "dd" && ng.D === "dd") {
-                ennusteet.push("Värisävy: Varmasti vaalennettu/diluutio pastelli (dd)");
-            } else if (ug.D.includes("D") && ng.D.includes("D") && !ug.D.includes("d") && !ng.D.includes("d")) {
-                ennusteet.push("Värisävy: Tummat perusvärit (DD)");
+            } else if (ut.N === "nn" && nt.N === "nn") {
+                ennusteet.push("Kuvio: Täysin oranssi turkki (nn)");
             } else {
-                ennusteet.push("Värisävy: Sekä tummia että harmaita/diluutio-pastelleja mahdollisia (dd)");
+                ennusteet.push("Kuvio: Vaihtelee (NN, Nn tai nn mahdollinen)");
             }
 
-            // Korvat (E-lokus)
-            if (ug.E === "e1e1" && ng.E === "e1e1") {
+            if (ut.B === "bb" && nt.B === "bb") {
+                ennusteet.push("Perusväri: Varmasti ruskea (bb)");
+            } else if (ut.B === "b1b1" && nt.B === "b1b1") {
+                ennusteet.push("Perusväri: Varmasti kaneli (b1b1)");
+            } else {
+                ennusteet.push("Perusväri: Musta pohjaväri (tai vanhempien paljastuneet geenit)");
+            }
+
+            if (ut.D === "dd" && nt.D === "dd") {
+                ennusteet.push("Värisävy: Varmasti haalistunut/diluutio pastelli (dd)");
+            } else {
+                ennusteet.push("Värisävy: Tummat sävyt (diluutio mahdoton tietää varmaksi ilman DNA-testiä tai jälkeläisiä)");
+            }
+
+            if (ut.E.includes("E") && nt.E.includes("E")) {
+                ennusteet.push("Korvat: Pystykorvat (E_)");
+            } else if (ut.E === "e1e1" && nt.E === "e1e1") {
                 ennusteet.push("Korvat: Varmasti luppakorvat (e1e1)");
-            } else if (ug.E.includes("E") && ng.E.includes("E")) {
-                ennusteet.push("Korvat: Varmasti pystykorvat (E_)");
+            } else if (ut.E === "ee" && nt.E === "ee") {
+                ennusteet.push("Korvat: Varmasti terrierikorvat (ee)");
+            } else {
+                ennusteet.push("Korvat: Periytyy vanhemmilta");
             }
 
-            // Valkotäpläisyys (W-lokus)
-            if (ug.W === "WW" || ng.W === "WW") {
+            if (ut.W === "WW" || nt.W === "WW") {
                 ennusteet.push("Täplät: Varmasti valkotäpläinen (W_)");
-            } else if (ug.W === "ww" && ng.W === "ww") {
+            } else if (ut.W === "ww" && nt.W === "ww") {
                 ennusteet.push("Täplät: Ei valkoisia täpliä (ww)");
+            } else {
+                ennusteet.push("Täplät: Mahdollisesti valkoisia täpliä (Ww/ww)");
             }
 
-            document.getElementById("pennun-ennuste").innerText = `Odotetut pentueen ominaisuudet:\n• ` + ennusteet.join("\n• ");
+            document.getElementById("pennun-ennuste").innerText = `Odotetut tunnetut ominaisuudet:\n• ` + ennusteet.join("\n• ");
         }
 
         function paivitaKaikkiUI() {
@@ -1106,25 +1145,42 @@
             setInterval(() => {
                 lauma.forEach(elain => {
                     if (!animaatioTilat[elain.id]) {
-                        animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0 };
+                        animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0, rapaytys: false };
                     }
-                    if (Math.random() < 0.3) {
+
+                    if (Math.random() < 0.6) {
+                        animaatioTilat[elain.id].rapaytys = true;
+                        let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
+                        if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
+
+                        setTimeout(() => {
+                            if (animaatioTilat[elain.id]) animaatioTilat[elain.id].rapaytys = false;
+                            let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
+                            if (canvasRest) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
+                        }, 220);
+                    }
+
+                    if (Math.random() < 0.25) {
                         let arpa = Math.random();
-                        if (arpa < 0.4) animaatioTilat[elain.id].hanta = -0.15;
-                        else if (arpa < 0.7) animaatioTilat[elain.id].korva = 0.1;
+                        if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.15;
+                        else if (arpa < 0.70) animaatioTilat[elain.id].korva = 0.1;
                         else animaatioTilat[elain.id].jalka = 15;
 
                         let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
                         if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
 
                         setTimeout(() => {
-                            animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0 };
+                            if (animaatioTilat[elain.id]) {
+                                animaatioTilat[elain.id].hanta = 0;
+                                animaatioTilat[elain.id].korva = 0;
+                                animaatioTilat[elain.id].jalka = 0;
+                            }
                             let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
                             if (canvasRest) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
                         }, 400);
                     }
                 });
-            }, 3000);
+            }, 2200);
         }
 
         function piirraElainKankaalle(elain, canvasId, flipX = false) {
@@ -1136,9 +1192,9 @@
             ctx.translate(canvas.width / 2, canvas.height / 2);
             let asento = elain.ika === 'pentu' ? (elain.ikaPaivat <= 1 ? "makaa" : (elain.ikaPaivat === 2 ? "istuu" : "seisoo")) : "seisoo";
             let scale = elain.ika === 'pentu' ? (elain.ikaPaivat <= 1 ? 0.055 : (elain.ikaPaivat === 2 ? 0.068 : 0.088)) : 0.098;
-            let silmatKiinni = (elain.ika === 'pentu' && elain.ikaPaivat <= 1);
             
-            let anim = animaatioTilat[elain.id] || { hanta: 0, korva: 0, jalka: 0 };
+            let anim = animaatioTilat[elain.id] || { hanta: 0, korva: 0, jalka: 0, rapaytys: false };
+            let silmatKiinni = (elain.ika === 'pentu' && elain.ikaPaivat <= 1) || anim.rapaytys;
 
             piirraKerrokset(ctx, elain, flipX, anim.hanta, asento, scale, silmatKiinni, anim.korva, anim.jalka);
             ctx.restore();
@@ -1325,10 +1381,16 @@
                         let maara = (aktiivinenBuffTupla || iloisuusBonus) ? 2 : 1;
                         aktiivinenBuffTupla = false;
 
+                        let isaObj = lauma.find(e => e.id === elain.viimeisinIsa.id) || elain.viimeisinIsa;
+
                         for(let i=0; i<maara; i++) {
                             if (lauma.length >= maxLaumaKoko) break;
                             let sp = aktiivinenBuffSukupuoli ? aktiivinenBuffSukupuoli : (Math.random() < 0.5 ? "♂" : "♀");
-                            let uusi = luoOlento("Pentu-" + (lauma.length + 1), sp, elain.viimeisinIsa.realGenotype, elain.realGenotype, "pentu", 0, elain.viimeisinIsa, elain);
+                            let uusi = luoOlento("Pentu-" + (lauma.length + 1), sp, isaObj.realGenotype, elain.realGenotype, "pentu", 0, isaObj, elain);
+                            
+                            // PAATTELE VANHEMPIEN PIILOGEENIT PENNUN SYNTYMÄSTÄ:
+                            paatteleVanhempienGeenit(uusi, isaObj, elain);
+
                             lauma.push(uusi);
                             syntyneetPennut++;
                             lisaaXP(1);
