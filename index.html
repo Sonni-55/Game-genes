@@ -296,7 +296,7 @@
     <!-- SIVU 3: TEHTÄVÄT -->
     <div id="tehtavat-sivu" class="page">
         <h2>📋 Päivän Tehtävät</h2>
-        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Päivittäiset tehtävät antavat XP:tä ja pienen rahapalkinnon! Vaativat tehtävät lukittuvat auki tasoilla 5, 10 ja 15.</p>
+        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Saat joka päivä 3 tehtävää! Kun lunastat tehtävän, se poistuu listalta. Uudet 3 tehtävää arvotaan aina seuraavana päivänä.</p>
         <div class="quest-list" id="tehtava-alue"></div>
     </div>
 
@@ -481,11 +481,13 @@
             paivitaKaikkiUI();
         }
 
-        const helppotehtavat = [
+        const kaikkiMahdollisetTehtavat = [
             { id: "ht1", kuvaus: "Omista vähintään 3 eläintä", raha: 40, xp: 10, tarkista: () => lauma.length >= 3 },
             { id: "ht2", kuvaus: "Silitä jotain eläintä tänään", raha: 30, xp: 8, tarkista: () => lauma.some(e => e.silitettyTanaan) },
             { id: "ht3", kuvaus: "Omista pystykorvainen eläin (E_)", raha: 35, xp: 10, tarkista: () => lauma.some(e => e.realGenotype.E.includes("E")) },
-            { id: "ht4", kuvaus: "Kasvata 1 pentu aikuisuuteen", raha: 50, xp: 12, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto") }
+            { id: "ht4", kuvaus: "Kasvata 1 pentu aikuisuuteen", raha: 50, xp: 12, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto") },
+            { id: "ht5", kuvaus: "Omista vähintään 5 eläintä", raha: 60, xp: 15, tarkista: () => lauma.length >= 5 },
+            { id: "ht6", kuvaus: "Rapsuta kaikkia lauman eläimiä tänään", raha: 50, xp: 15, tarkista: () => lauma.length > 0 && lauma.every(e => e.silitettyTanaan) }
         ];
 
         const vaativatTehtavat = [
@@ -500,14 +502,14 @@
             let valitut = [];
             let vaativiaMaara = taso >= 15 ? 3 : (taso >= 10 ? 2 : (taso >= 5 ? 1 : 0));
             let vSekoitettu = [...vaativatTehtavat].sort(() => 0.5 - Math.random());
-            let hSekoitettu = [...helppotehtavat].sort(() => 0.5 - Math.random());
+            let hSekoitettu = [...kaikkiMahdollisetTehtavat].sort(() => 0.5 - Math.random());
 
             for (let i = 0; i < vaativiaMaara; i++) {
                 if (vSekoitettu[i]) valitut.push({ ...vSekoitettu[i], lunastettu: false });
             }
             while (valitut.length < 3) {
                 let h = hSekoitettu.pop();
-                if (h) valitut.push({ ...h, lunastettu: false });
+                if (h && !valitut.some(v => v.id === h.id)) valitut.push({ ...h, lunastettu: false });
                 else break;
             }
             paivittaisetTehtavat = valitut;
@@ -552,6 +554,11 @@
             const alue = document.getElementById("tehtava-alue");
             if (!alue) return;
             alue.innerHTML = "";
+
+            if (paivittaisetTehtavat.length === 0) {
+                alue.innerHTML = `<p style="color:#aaa; font-size:13px;">Kaikki tämän päivän tehtävät on suoritettu! Uudet tehtävät tulevat seuraavana päivänä. ☀️</p>`;
+                return;
+            }
 
             paivittaisetTehtavat.forEach((t, idx) => {
                 let valmis = t.tarkista();
@@ -606,10 +613,12 @@
         function lunastaTehtava(idx) {
             let t = paivittaisetTehtavat[idx];
             if (t && t.tarkista() && !t.lunastettu) {
-                t.lunastettu = true;
                 raha += t.raha;
                 lisaaXP(t.xp);
                 lisaaIlmoitus(`🎉 Tehtävä suoritettu: "${t.kuvaus}"!`);
+                
+                // Poistetaan tehtävä kokonaan, eikä tilalle tule uutta ennen kuin vasta päivää vaihtaessa
+                paivittaisetTehtavat.splice(idx, 1);
                 paivitaKaikkiUI();
             }
         }
@@ -650,17 +659,17 @@
         function arvoKaupanAlleeli(lokus) {
             let loydetyt = loytyneetAlleelit[lokus] || [];
             let kaikkiMahdolliset = geenitMaaritykset[lokus].kaikki;
-            if (loydetyt.length === 0 || Math.random() < 0.2) {
-                return kaikkiMahdolliset[Math.floor(Math.random() * kaikkiMahdolliset.length)];
+            if (loydetyt.length > 0 && Math.random() < 0.90) {
+                return loydetyt[Math.floor(Math.random() * loydetyt.length)];
             }
-            return loydetyt[Math.floor(Math.random() * loydetyt.length)];
+            return kaikkiMahdolliset[Math.floor(Math.random() * kaikkiMahdolliset.length)];
         }
 
         function arvoKaupanValikoima() {
             let gU = {
                 B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'),
                 O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'),
-                N: "NN", // Musta uros on aina NN
+                N: "NN",
                 D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'),
                 E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'),
                 W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W')
@@ -721,6 +730,7 @@
 
             raha -= elain.hinta;
             lauma.push(elain);
+            tarkistaJaLisaaAlleelit(elain);
             if (tyyppi === 'uros') kauppaUros = null;
             else kauppaNaaras = null;
 
@@ -747,29 +757,35 @@
             let tunnetut = haeTunnetutGeenit(elain);
 
             if (tunnetut.B !== "B_") {
-                if (tunnetut.B === "b1b1") tarkistaYksittainenAlleeli('B', 'b1');
-                else if (tunnetut.B === "bb") tarkistaYksittainenAlleeli('B', 'b');
+                if (tunnetut.B === "b1b1") { tarkistaYksittainenAlleeli('B', 'b1'); }
+                else if (tunnetut.B === "bb") { tarkistaYksittainenAlleeli('B', 'b'); }
                 else { for (let char of tunnetut.B) { if (char !== '_') tarkistaYksittainenAlleeli('B', char); } }
+            } else {
+                tarkistaYksittainenAlleeli('B', 'B');
             }
 
             if (tunnetut.O !== "O_") {
                 if (tunnetut.O === "oo") tarkistaYksittainenAlleeli('O', 'o');
                 else { for (let char of tunnetut.O) { if (char !== '_') tarkistaYksittainenAlleeli('O', char); } }
+            } else {
+                tarkistaYksittainenAlleeli('O', 'O');
             }
 
             if (tunnetut.N !== "N_") tarkistaYksittainenAlleeli('N', tunnetut.N);
 
             if (tunnetut.D === "dd") tarkistaYksittainenAlleeli('D', 'd');
-            else if (omistaakoAnalysaattori) { for (let char of tunnetut.D) { if (char !== '_') tarkistaYksittainenAlleeli('D', char); } }
+            else tarkistaYksittainenAlleeli('D', 'D');
 
             if (tunnetut.E !== "E_") {
                 if (tunnetut.E === "e1e1") tarkistaYksittainenAlleeli('E', 'e1');
                 else if (tunnetut.E === "ee") tarkistaYksittainenAlleeli('E', 'e');
                 else { for (let char of tunnetut.E) { if (char !== '_') tarkistaYksittainenAlleeli('E', char); } }
+            } else {
+                tarkistaYksittainenAlleeli('E', 'E');
             }
 
-            if (tunnetut.W !== "ww") tarkistaYksittainenAlleeli('W', 'W');
-            else tarkistaYksittainenAlleeli('W', 'w');
+            if (tunnetut.W === "ww") tarkistaYksittainenAlleeli('W', 'w');
+            else tarkistaYksittainenAlleeli('W', 'W');
         }
 
         function tarkistaYksittainenAlleeli(lokus, al) {
@@ -806,7 +822,7 @@
             let realG = {
                 B: periydytaLokus(isag.B || "Bb", emag.B || "Bb"),
                 O: periydytaLokus(isag.O || "OO", emag.O || "OO"),
-                N: periydytaLokus(isag.N || "Nn", emag.N || "Nn"),
+                N: periydytaLokus(isag.N || "NN", emag.N || "NN"),
                 D: periydytaLokus(isag.D || "Dd", emag.D || "Dd"),
                 E: periydytaLokus(isag.E || "EE", emag.E || "EE"),
                 W: periydytaLokus(isag.W || "ww", emag.W || "ww")
@@ -879,7 +895,11 @@
             let g = elain.realGenotype;
             let p = elain.paljastetutGeenit || {};
 
-            let bOsa = p.B || (g.N === "NN" ? (g.B === "b1b1" ? "b1b1" : (g.B.startsWith("b") ? "bb" : "B_")) : "B_");
+            let bOsa;
+            if (g.B === "bb" || g.B === "bb1" || g.B === "b1b") bOsa = "bb";
+            else if (g.B === "b1b1") bOsa = "b1b1";
+            else bOsa = p.B || "B_";
+
             let oOsa = p.O || (g.N === "nn" ? (g.O === "oo" ? "oo" : "O_") : "__");
             let nOsa = p.N || g.N;
             let dOsa = p.D || (g.D === "dd" ? "dd" : "D_");
@@ -899,22 +919,25 @@
                 let vg = vanhempi.realGenotype;
                 let uuttaLoydetty = false;
 
-                if ((pg.N === "nn" || pg.N === "Nn") && vg.N === "NN") {
+                if ((pg.N === "nn" || pg.N === "Nn") && vg.N === "NN" && !vanhempi.paljastetutGeenit.N) {
                     vanhempi.paljastetutGeenit.N = "Nn";
                     uuttaLoydetty = true;
                 }
 
-                if (pg.O.includes("o") && vg.O === "Oo" && !vanhempi.paljastetutGeenit.O) {
-                    vanhempi.paljastetutGeenit.O = "Oo";
+                if (pg.O.includes("o") && vg.O.includes("o") && !vanhempi.paljastetutGeenit.O) {
+                    vanhempi.paljastetutGeenit.O = vg.O;
                     uuttaLoydetty = true;
                 }
 
-                if (pg.D === "dd" && vg.D === "Dd" && !vanhempi.paljastetutGeenit.D) {
+                if (pg.D === "dd" && vg.D.includes("d") && !vanhempi.paljastetutGeenit.D) {
                     vanhempi.paljastetutGeenit.D = "Dd";
                     uuttaLoydetty = true;
                 }
 
-                if ((pg.E === "e1e1" || pg.E === "ee") && vg.E.includes("E") && !vanhempi.paljastetutGeenit.E) {
+                if (pg.E === "e1e1" && vg.E.includes("e1") && !vanhempi.paljastetutGeenit.E) {
+                    vanhempi.paljastetutGeenit.E = vg.E;
+                    uuttaLoydetty = true;
+                } else if (pg.E === "ee" && vg.E.includes("e") && !vanhempi.paljastetutGeenit.E) {
                     vanhempi.paljastetutGeenit.E = vg.E;
                     uuttaLoydetty = true;
                 }
@@ -951,49 +974,40 @@
             let ennusteet = [];
 
             if ((ut.N === "NN" && nt.N === "nn") || (ut.N === "nn" && nt.N === "NN")) {
-                ennusteet.push("Kuvio: Varmasti kilpikonnakuvio / Calico (Nn)");
-                ennusteet.push("Oranssi: Oranssigeeni näkyy Calico-läikkinä kaikilla pennuilla");
+                ennusteet.push("Kuvio: Calico / kilpikonnakuvio (Nn)");
             } else if (ut.N === "NN" && nt.N === "NN") {
-                ennusteet.push("Kuvio: Perusväri, ei kilpikonnakuviota (NN)");
+                ennusteet.push("Kuvio: Perusväri (NN)");
             } else if (ut.N === "nn" && nt.N === "nn") {
-                ennusteet.push("Kuvio: Täksi oranssi turkki (nn)");
+                ennusteet.push("Kuvio: Oranssi (nn)");
             } else {
-                ennusteet.push("Kuvio: Vaihtelee (NN, Nn tai nn mahdollinen)");
+                ennusteet.push("Kuvio: Vaihtelee (NN, Nn tai nn)");
             }
 
             if (ut.B === "bb" && nt.B === "bb") {
-                ennusteet.push("Perusväri: Varmasti ruskea (bb)");
+                ennusteet.push("Väri: Ruskea (bb)");
             } else if (ut.B === "b1b1" && nt.B === "b1b1") {
-                ennusteet.push("Perusväri: Varmasti kaneli (b1b1)");
+                ennusteet.push("Väri: Kaneli (b1b1)");
             } else {
-                ennusteet.push("Perusväri: Musta pohjaväri (tai vanhempien paljastuneet geenit)");
+                ennusteet.push("Väri: Musta / kantaa värejä");
             }
 
             if (ut.D === "dd" && nt.D === "dd") {
-                ennusteet.push("Värisävy: Varmasti haalistunut/diluutio pastelli (dd)");
+                ennusteet.push("Diluutio: Haalistunut / pastelli (dd)");
             } else {
-                ennusteet.push("Värisävy: Tummat sävyt (diluutio mahdoton tietää varmaksi ilman DNA-testiä tai jälkeläisiä)");
+                ennusteet.push("Diluutio: Tummat sävyt / mahdollinen kantaja");
             }
 
             if (ut.E.includes("E") && nt.E.includes("E")) {
-                ennusteet.push("Korvat: Pystykorvat (E_)");
+                ennusteet.push("Korvat: Pystykorvat");
             } else if (ut.E === "e1e1" && nt.E === "e1e1") {
-                ennusteet.push("Korvat: Varmasti luppakorvat (e1e1)");
+                ennusteet.push("Korvat: Luppakorvat (e1e1)");
             } else if (ut.E === "ee" && nt.E === "ee") {
-                ennusteet.push("Korvat: Varmasti terrierikorvat (ee)");
+                ennusteet.push("Korvat: Terrierikorvat (ee)");
             } else {
                 ennusteet.push("Korvat: Periytyy vanhemmilta");
             }
 
-            if (ut.W === "WW" || nt.W === "WW") {
-                ennusteet.push("Täplät: Varmasti valkotäpläinen (W_)");
-            } else if (ut.W === "ww" && nt.W === "ww") {
-                ennusteet.push("Täplät: Ei valkoisia täpliä (ww)");
-            } else {
-                ennusteet.push("Täplät: Mahdollisesti valkoisia täpliä (Ww/ww)");
-            }
-
-            document.getElementById("pennun-ennuste").innerText = `Odotetut tunnetut ominaisuudet (laskettu varmojen tietojen mukaan):\n• ` + ennusteet.join("\n• ");
+            document.getElementById("pennun-ennuste").innerText = `Odotetut ominaisuudet (laskettu varmojen tietojen mukaan):\n• ` + ennusteet.join("\n• ");
         }
 
         function paivitaKaikkiUI() {
@@ -1013,19 +1027,19 @@
             paivitaGeenikirjaUI();
             paivitaMerkitUI();
 
-            localStorage.setItem("laji_lauma_v45", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v45", raha);
-            localStorage.setItem("laji_xp_v45", xp);
-            localStorage.setItem("laji_taso_v45", taso);
-            localStorage.setItem("laji_geenit_v45", JSON.stringify(loytyneetAlleelit));
-            localStorage.setItem("laji_tehtavat_v45", JSON.stringify(paivittaisetTehtavat));
-            localStorage.setItem("laji_haasteet_v45", JSON.stringify(haasteet));
-            localStorage.setItem("laji_saavutukset_v45", JSON.stringify(saavutukset));
-            localStorage.setItem("laji_kauppa_uros_v45", JSON.stringify(kauppaUros));
-            localStorage.setItem("laji_kauppa_naaras_v45", JSON.stringify(kauppaNaaras));
-            localStorage.setItem("laji_max_koko_v45", maxLaumaKoko);
-            localStorage.setItem("laji_pentuhuone_v45", omistaakoPentuhuone);
-            localStorage.setItem("laji_analysaattori_v45", omistaakoAnalysaattori);
+            localStorage.setItem("laji_lauma_v47", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v47", raha);
+            localStorage.setItem("laji_xp_v47", xp);
+            localStorage.setItem("laji_taso_v47", taso);
+            localStorage.setItem("laji_geenit_v47", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_tehtavat_v47", JSON.stringify(paivittaisetTehtavat));
+            localStorage.setItem("laji_haasteet_v47", JSON.stringify(haasteet));
+            localStorage.setItem("laji_saavutukset_v47", JSON.stringify(saavutukset));
+            localStorage.setItem("laji_kauppa_uros_v47", JSON.stringify(kauppaUros));
+            localStorage.setItem("laji_kauppa_naaras_v47", JSON.stringify(kauppaNaaras));
+            localStorage.setItem("laji_max_koko_v47", maxLaumaKoko);
+            localStorage.setItem("laji_pentuhuone_v47", omistaakoPentuhuone);
+            localStorage.setItem("laji_analysaattori_v47", omistaakoAnalysaattori);
         }
 
         function paivitaMerkitUI() {
@@ -1133,49 +1147,57 @@
             }
         }
 
+        // KORJATTU SATUNNAISLIIKE: Hahmot liikkuvat ja räpäyttelevät silmiään täysin omissa yksilöllisissä tahdeissaan
         function kaynnistaSatunnaisLiikkeet() {
             if (window.animLoopKaynnissa) return;
             window.animLoopKaynnissa = true;
 
-            setInterval(() => {
-                lauma.forEach(elain => {
-                    if (!animaatioTilat[elain.id]) {
-                        animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0, rapaytys: false };
-                    }
+            function suoritaYksittainenAnimaatio(elain) {
+                if (!animaatioTilat[elain.id]) {
+                    animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0, rapaytys: false };
+                }
 
-                    if (Math.random() < 0.6) {
-                        animaatioTilat[elain.id].rapaytys = true;
-                        let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
-                        if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
+                if (Math.random() < 0.6) {
+                    animaatioTilat[elain.id].rapaytys = true;
+                    let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
+                    if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
 
-                        setTimeout(() => {
-                            if (animaatioTilat[elain.id]) animaatioTilat[elain.id].rapaytys = false;
-                            let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
-                            if (canvasRest) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
-                        }, 220);
-                    }
+                    setTimeout(() => {
+                        if (animaatioTilat[elain.id]) animaatioTilat[elain.id].rapaytys = false;
+                        let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
+                        if (canvasRest) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
+                    }, 200 + Math.random() * 100);
+                }
 
-                    if (Math.random() < 0.25) {
-                        let arpa = Math.random();
-                        if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.15;
-                        else if (arpa < 0.70) animaatioTilat[elain.id].korva = 0.1;
-                        else animaatioTilat[elain.id].jalka = 15;
+                if (Math.random() < 0.35) {
+                    let arpa = Math.random();
+                    if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.15;
+                    else if (arpa < 0.70) animaatioTilat[elain.id].korva = 0.1;
+                    else animaatioTilat[elain.id].jalka = 15;
 
-                        let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
-                        if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
+                    let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
+                    if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
 
-                        setTimeout(() => {
-                            if (animaatioTilat[elain.id]) {
-                                animaatioTilat[elain.id].hanta = 0;
-                                animaatioTilat[elain.id].korva = 0;
-                                animaatioTilat[elain.id].jalka = 0;
-                            }
-                            let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
-                            if (canvasRest) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
-                        }, 400);
-                    }
-                });
-            }, 2200);
+                    setTimeout(() => {
+                        if (animaatioTilat[elain.id]) {
+                            animaatioTilat[elain.id].hanta = 0;
+                            animaatioTilat[elain.id].korva = 0;
+                            animaatioTilat[elain.id].jalka = 0;
+                        }
+                        let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
+                        if (canvasRest) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
+                    }, 350 + Math.random() * 200);
+                }
+
+                // Seuraava liike tapahtuu yksilöllisellä satunnaisella viiveellä (1.5s - 4.5s)
+                let seuraavaViive = 1500 + Math.random() * 3000;
+                setTimeout(() => suoritaYksittainenAnimaatio(elain), seuraavaViive);
+            }
+
+            // Käynnistetään jokaiselle eläimelle oma itsenäinen aikataulu
+            lauma.forEach((elain, idx) => {
+                setTimeout(() => suoritaYksittainenAnimaatio(elain), idx * 400 + Math.random() * 1000);
+            });
         }
 
         function piirraElainKankaalle(elain, canvasId, flipX = false) {
@@ -1335,7 +1357,6 @@
                 
                 let badgeHtml = uudetAlleelitIlmoitus[lokus] ? `<div class="codex-badge">!</div>` : "";
                 
-                // Jos lokuksesta ei ole vielä löydetty yhtään alleelia, näytetään se lukittuna eikä paljasteta kaikkia kirjaimia etukäteen!
                 let alleelitHtml = "";
                 if (loydetyt.length === 0) {
                     alleelitHtml = `<span style="font-size:12px; color:#777;">🔒 Lukittu – ei löydettyjä geenejä tässä lokuksessa</span>`;
@@ -1415,6 +1436,7 @@
                 satunnaisetTapahtumatTeksti = ` Rauhallinen päivä aitauksessa.`;
             }
 
+            // Arvotaan uudet tehtävät VAIN päivän vaihtuessa!
             arvoPaivittaisetTehtavat();
             arvoKaupanValikoima();
             paivitaKaikkiUI();
@@ -1447,16 +1469,15 @@
                 viivaVari = "#555566";
                 silmaOpacity = 0.5;
             } else {
-                // KORJATTU VÄRILOGIIKKA: Oranssi/punainen (nn) ei muutu harmaaksi diluutiolla vaan vaaleaksi kermaksi/aprikoosiksi!
                 if (g.N === "nn") {
                     turkinVari = g.O === "oo" ? "#f5deb3" : "#e67e22";
-                    if (g.D === "dd") turkinVari = "#ffdfba"; // vaalea kerma/aprikoosi diluutiolla
+                    if (g.D === "dd") turkinVari = "#ffdfba";
                 } else if (g.N === "NN") {
                     if (g.B === "b1b1") turkinVari = "#d27d2d";
                     else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") turkinVari = "#8b5a2b";
                     else turkinVari = "#222222";
-                    if (g.D === "dd") turkinVari = "#778899"; // Harmaa vain mustalle/ruskealle/kanelille!
-                } else { // Nn (Calico)
+                    if (g.D === "dd") turkinVari = "#778899";
+                } else {
                     turkinVari = (g.B === "bb" || g.B === "b1b" || g.B === "bb1") ? "#8b5a2b" : "#222222";
                     if (g.D === "dd") turkinVari = "#778899";
                 }
@@ -1596,19 +1617,19 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v45");
-            let tRaha = localStorage.getItem("laji_raha_v45");
-            let tXP = localStorage.getItem("laji_xp_v45");
-            let tTaso = localStorage.getItem("laji_taso_v45");
-            let tGeenit = localStorage.getItem("laji_geenit_v45");
-            let tTehtavat = localStorage.getItem("laji_tehtavat_v45");
-            let tHaasteet = localStorage.getItem("laji_haasteet_v45");
-            let tSaavutukset = localStorage.getItem("laji_saavutukset_v45");
-            let tKauppaU = localStorage.getItem("laji_kauppa_uros_v45");
-            let tKauppaN = localStorage.getItem("laji_kauppa_naaras_v45");
-            let tMaxKoko = localStorage.getItem("laji_max_koko_v45");
-            let tPentuhuone = localStorage.getItem("laji_pentuhuone_v45");
-            let tAnalysaattori = localStorage.getItem("laji_analysaattori_v45");
+            let tLauma = localStorage.getItem("laji_lauma_v47");
+            let tRaha = localStorage.getItem("laji_raha_v47");
+            let tXP = localStorage.getItem("laji_xp_v47");
+            let tTaso = localStorage.getItem("laji_taso_v47");
+            let tGeenit = localStorage.getItem("laji_geenit_v47");
+            let tTehtavat = localStorage.getItem("laji_tehtavat_v47");
+            let tHaasteet = localStorage.getItem("laji_haasteet_v47");
+            let tSaavutukset = localStorage.getItem("laji_saavutukset_v47");
+            let tKauppaU = localStorage.getItem("laji_kauppa_uros_v47");
+            let tKauppaN = localStorage.getItem("laji_kauppa_naaras_v47");
+            let tMaxKoko = localStorage.getItem("laji_max_koko_v47");
+            let tPentuhuone = localStorage.getItem("laji_pentuhuone_v47");
+            let tAnalysaattori = localStorage.getItem("laji_analysaattori_v47");
 
             if (tLauma) lauma = JSON.parse(tLauma);
             if (tRaha) raha = parseInt(tRaha);
@@ -1621,7 +1642,7 @@
 
             if (tTehtavat) {
                 let tallennetut = JSON.parse(tTehtavat);
-                let yhdistetyt = [...helppotehtavat, ...vaativatTehtavat];
+                let yhdistetyt = [...kaikkiMahdollisetTehtavat, ...vaativatTehtavat];
                 paivittaisetTehtavat = tallennetut.map(t => ({
                     ...t,
                     tarkista: yhdistetyt.find(m => m.id === t.id)?.tarkista || (() => false)
@@ -1650,7 +1671,8 @@
             } else arvoKaupanValikoima();
 
             if (lauma.length === 0) {
-                let urosG = { B: "Bb1", O: "OO", N: "NN", D: "Dd", E: "Ee", W: "ww" };
+                // KANTA-ISÄ KORJATTU: Genotyyppi "Bb" eli B_ (kantaa b-alleelia, näkyy B_)
+                let urosG = { B: "Bb", O: "OO", N: "NN", D: "Dd", E: "Ee", W: "ww" };
                 let kantaUros = luoOlento("Kanta-Uros", "♂", urosG, urosG, "aikuinen", 4);
                 kantaUros.realGenotype = urosG;
 
