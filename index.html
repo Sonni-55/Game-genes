@@ -437,7 +437,7 @@
         let kauppaUros = null;
         let kauppaNaaras = null;
 
-        // Kirjaston seuranta (N-lokus sisältää NN, Nn, nn)
+        // Kirjaston seuranta - alussa tyhjä, jotta kaikki ovat lukittuina kunnes niitä löydetään
         let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [] };
         let uudetAlleelitIlmoitus = {};
 
@@ -455,7 +455,6 @@
         let valittuNaaras = null;
         let ilmoitukset = [];
 
-        // Animaatiotilat (rauhallinen satunnainen liike)
         const animaatioTilat = {};
 
         const offscreenCanvas = document.createElement("canvas");
@@ -747,10 +746,7 @@
             let g = elain.realGenotype;
             tarkistaYksittainenAlleeli('B', g.B[0]); tarkistaYksittainenAlleeli('B', g.B[1]);
             tarkistaYksittainenAlleeli('O', g.O[0]); tarkistaYksittainenAlleeli('O', g.O[1]);
-            
-            // N-lokus tallennetaan muodossa NN, Nn tai nn kirjastoon
             tarkistaYksittainenAlleeli('N', g.N);
-            
             tarkistaYksittainenAlleeli('D', g.D[0]); tarkistaYksittainenAlleeli('D', g.D[1]);
             tarkistaYksittainenAlleeli('E', g.E[0]); tarkistaYksittainenAlleeli('E', g.E[1]);
             tarkistaYksittainenAlleeli('W', g.W[0]); tarkistaYksittainenAlleeli('W', g.W[1]);
@@ -849,7 +845,6 @@
             return uusi;
         }
 
-        // DOMINOIVIEN ALLEELEIDEN MUKAINEN FENOTYYPPINÄYTTÖ
         function haeFenotyyppiGeenit(elain) {
             let g = elain.realGenotype;
             let bOsa = "B_", oOsa = "O_";
@@ -863,7 +858,7 @@
                 bOsa = "__";
                 if (g.O === "oo") oOsa = "oo";
                 else oOsa = "O_";
-            } else { // Nn (Calico)
+            } else {
                 if (g.B === "b1b1") bOsa = "b1b1";
                 else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
                 else bOsa = "B_";
@@ -900,7 +895,7 @@
             return { prosentti, teksti };
         }
 
-        // PAIVITETTY JALOSTUSENNUSTE DOMINOIVIEN / VARMOJEN ALLEELEIDEN MUKAAN
+        // TARKEMPI JALOSTUSENNUSTE
         function paivitaEnnuste() {
             if (!valittuUros || !valittuNaaras) {
                 document.getElementById("pennun-ennuste").innerText = `Valitse vanhemmat ennustetta varten`;
@@ -911,42 +906,60 @@
             let ng = valittuNaaras.realGenotype;
             let ennusteet = [];
 
-            // N-Lokus / Kuvio
+            // Perusvärit (B-lokus)
+            let bU = ug.B; let bN = ng.B;
+            if (bU.includes('b1') && bN.includes('b1') && !bU.includes('B') && !bN.includes('B')) {
+                ennusteet.push("Perusväri: Varmasti kaneli (b1b1)");
+            } else if (bU.includes('b') && bN.includes('b') && !bU.includes('B') && !bN.includes('B') && !bU.includes('1') && !bN.includes('1')) {
+                ennusteet.push("Perusväri: Varmasti ruskea (bb)");
+            } else if (!bU.includes('b') && !bN.includes('b') && !bU.includes('1') && !bN.includes('1')) {
+                ennusteet.push("Perusväri: Varmasti musta (BB)");
+            } else {
+                ennusteet.push("Perusväri: Musta, ruskea tai kaneli mahdollisia");
+            }
+
+            // Oranssi / Punainen (O-lokus)
+            if (ug.O === "oo" && ng.O === "oo") {
+                ennusteet.push("Oranssi: Varmasti oranssi/punainen (oo)");
+            } else if (ug.O.includes("O") && ng.O.includes("O")) {
+                ennusteet.push("Oranssi: Ei oranssigeeniä pinnalla (OO)");
+            } else {
+                ennusteet.push("Oranssi: Oransseja/kermanvaaleita pentuja voi syntyä");
+            }
+
+            // Kuvio (N-lokus)
             if (ug.N === "NN" && ng.N === "nn" || ug.N === "nn" && ng.N === "NN") {
-                ennusteet.push("Kuvio: Varmasti kilpikonnakuvio (Nn)");
+                ennusteet.push("Kuvio: Varmasti kilpikonnakuvio / Calico (Nn)");
+            } else if (ug.N === "nn" && ng.N === "nn") {
+                ennusteet.push("Kuvio: Varmasti oranssilokus (nn)");
             } else if (ug.N === "NN" && ng.N === "NN") {
-                ennusteet.push("Kuvio: Ei kilpikonnakuviota (NN)");
+                ennusteet.push("Kuvio: Perusväri, ei kilpikonnakuviota (NN)");
             }
 
-            // Valkotäpläisyys (W)
-            if (ug.W === "WW" || ng.W === "WW") {
-                ennusteet.push("Valkoiset täplät: Varmasti valkotäpläinen (W_)");
-            } else if (ug.W === "ww" && ng.W === "ww") {
-                ennusteet.push("Valkoiset täplät: Ei täpliä (ww)");
-            }
-
-            // Korvat (E)
-            if (ug.E.includes("E") && ng.E.includes("E") && ug.E === "EE" && ng.E === "EE") {
-                ennusteet.push("Korvat: Varmasti pystykorvat (E_)");
-            } else if (ug.E === "e1e1" && ng.E === "e1e1") {
-                ennusteet.push("Korvat: Varmasti luppakorvat (e1e1)");
-            }
-
-            // Diluutio (D)
+            // Diluutio (D-lokus)
             if (ug.D === "dd" && ng.D === "dd") {
-                ennusteet.push("Väri: Varmasti diluutio/vaalea (dd)");
+                ennusteet.push("Värisävy: Varmasti vaalennettu/diluutio pastelli (dd)");
+            } else if (ug.D.includes("D") && ng.D.includes("D") && !ug.D.includes("d") && !ng.D.includes("d")) {
+                ennusteet.push("Värisävy: Tummat perusvärit (DD)");
+            } else {
+                ennusteet.push("Värisävy: Sekä tummia että harmaita/diluutio-pastelleja mahdollisia (dd)");
             }
 
-            // B-Lokus perusvärit
-            if (ug.B === "bb" && ng.B === "bb") {
-                ennusteet.push("Perusväri: Ruskea (bb)");
-            } else if (ug.B === "b1b1" && ng.B === "b1b1") {
-                ennusteet.push("Perusväri: Kaneli (b1b1)");
+            // Korvat (E-lokus)
+            if (ug.E === "e1e1" && ng.E === "e1e1") {
+                ennusteet.push("Korvat: Varmasti luppakorvat (e1e1)");
+            } else if (ug.E.includes("E") && ng.E.includes("E")) {
+                ennusteet.push("Korvat: Varmasti pystykorvat (E_)");
             }
 
-            document.getElementById("pennun-ennuste").innerText = ennusteet.length > 0 
-                ? `Odotettavissa varmat ominaisuudet:\n• ` + ennusteet.join("\n• ") 
-                : `Odotettu pentue: Monipuoliset fenotyypit mahdollisia`;
+            // Valkotäpläisyys (W-lokus)
+            if (ug.W === "WW" || ng.W === "WW") {
+                ennusteet.push("Täplät: Varmasti valkotäpläinen (W_)");
+            } else if (ug.W === "ww" && ng.W === "ww") {
+                ennusteet.push("Täplät: Ei valkoisia täpliä (ww)");
+            }
+
+            document.getElementById("pennun-ennuste").innerText = `Odotetut pentueen ominaisuudet:\n• ` + ennusteet.join("\n• ");
         }
 
         function paivitaKaikkiUI() {
@@ -1086,7 +1099,6 @@
             }
         }
 
-        // KEVEÄ JA HARVAAN TAPAHTUVA SATUNNAISANIMAATIO (EI RASITA TIERTOKONEETTA/PUHELINTA)
         function kaynnistaSatunnaisLiikkeet() {
             if (window.animLoopKaynnissa) return;
             window.animLoopKaynnissa = true;
@@ -1096,17 +1108,15 @@
                     if (!animaatioTilat[elain.id]) {
                         animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0 };
                     }
-                    // Arvotaan satunnainen pieni liike 30% mahdollisuudella
                     if (Math.random() < 0.3) {
                         let arpa = Math.random();
-                        if (arpa < 0.4) animaatioTilat[elain.id].hanta = -0.15; // Häntä ylempänä
-                        else if (arpa < 0.7) animaatioTilat[elain.id].korva = 0.1; // Korva edempänä
-                        else animaatioTilat[elain.id].jalka = 15; // Tassu edempänä
+                        if (arpa < 0.4) animaatioTilat[elain.id].hanta = -0.15;
+                        else if (arpa < 0.7) animaatioTilat[elain.id].korva = 0.1;
+                        else animaatioTilat[elain.id].jalka = 15;
 
                         let canvas = document.getElementById(`canvas-kortti-${elain.id}`);
                         if (canvas) piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
 
-                        // Palautetaan normaaliksi 400ms kuluttua
                         setTimeout(() => {
                             animaatioTilat[elain.id] = { hanta: 0, korva: 0, jalka: 0 };
                             let canvasRest = document.getElementById(`canvas-kortti-${elain.id}`);
@@ -1114,7 +1124,7 @@
                         }, 400);
                     }
                 });
-            }, 3000); // Tarkistetaan 3 sekunnin välein
+            }, 3000);
         }
 
         function piirraElainKankaalle(elain, canvasId, flipX = false) {
@@ -1442,7 +1452,6 @@
             ctx.save();
             ctx.translate(0, kehoOffsetY);
 
-            // Häntä animaatiolla
             ctx.save();
             ctx.translate(ox + w * 0.78, oy + h * 0.55);
             ctx.rotate(hantaKulma);
@@ -1455,7 +1464,6 @@
             piirraOsa(kuvat.kaula_rinta_vari, kuvat.kaula_rinta_viivat, turkinVari);
             piirraOsa(kuvat.keho_vari, kuvat.keho_viivat, turkinVari, true);
 
-            // Tassu-animaatio etujalalle
             ctx.save();
             ctx.translate(jalkaSiirto, 0);
             piirraOsa(kuvat.lahempi_etujalka_vari, kuvat.lahempi_etujalka_viivat, turkinVari);
@@ -1494,7 +1502,6 @@
 
             if (!onkoLuppa && !onkoTerrier) piirraOsa(kuvat.korva_sisa_vari, null, ihoVari);
 
-            // Korva-animaatio
             ctx.save();
             ctx.translate(korvaSiirto * 20, 0);
             if (onkoTerrier) piirraOsa(kuvat.paallimmainen_terrierkorva_vari, kuvat.paallimmainen_terrierkorva_viivat, turkinVari);
@@ -1574,14 +1581,11 @@
                 kauppaNaaras = JSON.parse(tKauppaN);
             } else arvoKaupanValikoima();
 
-            // LIIKKUMATON JA TARKOIN MÄÄRITETTY ALOITUSLAUMA
             if (lauma.length === 0) {
-                // Uros: Bb1 OO NN Dd Ee ww (Näkyy: B_ N_ E_ D_ ww)
                 let urosG = { B: "Bb1", O: "OO", N: "NN", D: "Dd", E: "Ee", W: "ww" };
                 let kantaUros = luoOlento("Kanta-Uros", "♂", urosG, urosG, "aikuinen", 4);
                 kantaUros.realGenotype = urosG;
 
-                // Naaras: Bb Oo nn DD ee1 ww (Näkyy: O_ nn e_ D_ ww)
                 let naarasG = { B: "Bb", O: "Oo", N: "nn", D: "DD", E: "ee1", W: "ww" };
                 let kantaEma = luoOlento("Kanta-Emä", "♀", naarasG, naarasG, "aikuinen", 4);
                 kantaEma.realGenotype = naarasG;
