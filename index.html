@@ -842,26 +842,27 @@
         }
 
         function tarkistaJaLisaaAlleelit(elain) {
-            let g = elain.realGenotype;
-            // Yksittäiset alleelit pilkotaan
+            let g = haeTunnetutGeenit(elain);
             for (let lokus in geenitMaaritykset) {
                 let maaritys = geenitMaaritykset[lokus];
                 let arvo = g[lokus];
                 if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
 
-                if (maaritys.tyyppi === 'pari') {
-                    if (!loytyneetAlleelit[lokus].includes(arvo)) {
-                        loytyneetAlleelit[lokus].push(arvo);
-                        uudetAlleelitIlmoitus[lokus] = true;
-                        lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${arvo}!`);
-                    }
-                } else {
-                    for (let i = 0; i < arvo.length; i++) {
-                        let char = arvo[i];
-                        if (!loytyneetAlleelit[lokus].includes(char)) {
-                            loytyneetAlleelit[lokus].push(char);
+                if (arvo && arvo !== "__" && !arvo.includes("_")) {
+                    if (maaritys.tyyppi === 'pari') {
+                        if (!loytyneetAlleelit[lokus].includes(arvo)) {
+                            loytyneetAlleelit[lokus].push(arvo);
                             uudetAlleelitIlmoitus[lokus] = true;
-                            lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+                            lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${arvo}!`);
+                        }
+                    } else {
+                        for (let i = 0; i < arvo.length; i++) {
+                            let char = arvo[i];
+                            if (char !== '_' && !loytyneetAlleelit[lokus].includes(char)) {
+                                loytyneetAlleelit[lokus].push(char);
+                                uudetAlleelitIlmoitus[lokus] = true;
+                                lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+                            }
                         }
                     }
                 }
@@ -1075,14 +1076,14 @@
             paivitaGeenikirjaUI();
             paivitaMerkitUI();
 
-            localStorage.setItem("laji_lauma_v49", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v49", raha);
-            localStorage.setItem("laji_xp_v49", xp);
-            localStorage.setItem("laji_taso_v49", taso);
-            localStorage.setItem("laji_geenit_v49", JSON.stringify(loytyneetAlleelit));
-            localStorage.setItem("laji_stats_v49", JSON.stringify(statsTracker));
-            localStorage.setItem("laji_varasto_v49", JSON.stringify(varastoTarvikkeet));
-            localStorage.setItem("laji_max_koko_v49", maxLaumaKoko);
+            localStorage.setItem("laji_lauma_v50", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v50", raha);
+            localStorage.setItem("laji_xp_v50", xp);
+            localStorage.setItem("laji_taso_v50", taso);
+            localStorage.setItem("laji_geenit_v50", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_stats_v50", JSON.stringify(statsTracker));
+            localStorage.setItem("laji_varasto_v50", JSON.stringify(varastoTarvikkeet));
+            localStorage.setItem("laji_max_koko_v50", maxLaumaKoko);
         }
 
         function paivitaMerkitUI() {
@@ -1585,19 +1586,19 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v49");
+            let tLauma = localStorage.getItem("laji_lauma_v50");
             if (tLauma) {
                 lauma = JSON.parse(tLauma);
-                raha = parseInt(localStorage.getItem("laji_raha_v49") || 250);
-                xp = parseInt(localStorage.getItem("laji_xp_v49") || 0);
-                taso = parseInt(localStorage.getItem("laji_taso_v49") || 1);
-                loytyneetAlleelit = JSON.parse(localStorage.getItem("laji_geenit_v49") || '{"B":[],"O":[],"N":[],"D":[],"E":[],"W":[]}');
-                statsTracker = JSON.parse(localStorage.getItem("laji_stats_v49") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
-                varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v49") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
-                maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v49") || 8);
+                raha = parseInt(localStorage.getItem("laji_raha_v50") || 250);
+                xp = parseInt(localStorage.getItem("laji_xp_v50") || 0);
+                taso = parseInt(localStorage.getItem("laji_taso_v50") || 1);
+                loytyneetAlleelit = JSON.parse(localStorage.getItem("laji_geenit_v50") || '{"B":[],"O":[],"N":[],"D":[],"E":[],"W":[]}');
+                statsTracker = JSON.parse(localStorage.getItem("laji_stats_v50") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
+                varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v50") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
+                maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v50") || 8);
             } else {
-                // TARKAT ENNALTA MÄÄRÄTYT KANTAHAHMOT
-                let urosG = { B: "Bb", O: "OO", N: "NN", D: "Dd", E: "Ee", W: "ww" };
+                // TARKAT ENNALTA MÄÄRÄTYT KANTAHAHMOT PYYNTÖSI MUKAAN
+                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1606,7 +1607,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "Bb", O: "Oo", N: "NN", D: "DD", E: "e1e1", W: "ww" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
