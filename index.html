@@ -210,14 +210,25 @@
             <div class="xp-naytto">⭐ Lvl <span id="pelaaja-lvl">1</span> (<span id="pelaaja-xp">0</span>/100 XP)</div>
             <div class="raha-naytto">💰 <span id="pelaaja-raha">150</span> €</div>
             <button class="notif-btn" onclick="avaaModal('ilmoitus-modal')">🔔</button>
+            <button class="notif-btn" onclick="avaaModal('asetukset-modal')" title="Asetukset">⚙️</button>
         </div>
     </div>
 
+    <!-- Modaalit -->
     <div id="ilmoitus-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="suljeModaalit()">&times;</span>
             <h3>Ilmoitukset</h3>
             <div id="ilmoitus-lista" style="max-height: 200px; overflow-y: auto; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <div id="asetukset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="suljeModaalit()">&times;</span>
+            <h3>⚙️ Pelin Asetukset</h3>
+            <p style="font-size: 12px; color: #aaa;">Voit nollata pelitallennuksesi tästä. Tätä toimintoa ei voi peruuttaa!</p>
+            <button class="action-btn" style="background-color: #e74c3c; margin-top: 15px;" onclick="nollaaPeli()">🔄 Nollaa peli ja aloita alusta</button>
         </div>
     </div>
 
@@ -500,6 +511,13 @@
             document.getElementById("ilmoitus-lista").innerHTML = ilmoitukset.map(i => `<div style="padding:3px 0; border-bottom:1px solid #333;">${i}</div>`).join("");
         }
 
+        function nollaaPeli() {
+            if (confirm("⚠️ OLETKO VARMA?\n\nTämä poistaa kaiken edistymisen ja aloittaa pelin alusta!")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
         function lisaaXP(maara) {
             xp += maara;
             let uusiTaso = Math.floor(xp / 100) + 1;
@@ -552,18 +570,17 @@
             { id: "h4", kuvaus: "Asiakastilaus: Zen-geeninen (hh) ja pystykorvainen (E_) eläin", raha: 300, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.H === "hh" && haeTunnetutGeenit(e).E.includes("E")) }
         ];
 
-        function alustaHaasteet() {
-            if (haasteet.length < 2) {
-                let sekoitetut = [...mahdollisetHaasteet].filter(m => !haasteet.some(h => h.id === m.id)).sort(() => 0.5 - Math.random());
-                while (haasteet.length < 2 && sekoitetut.length > 0) {
-                    haasteet.push({ ...sekoitetut.pop(), lunastettu: false });
-                }
+        function arvoPaivittaisetHaasteet() {
+            // Täytetään haasteita 3 kpl asti
+            let sekoitetut = [...mahdollisetHaasteet].filter(m => !haasteet.some(h => h.id === m.id)).sort(() => 0.5 - Math.random());
+            while (haasteet.length < 3 && sekoitetut.length > 0) {
+                haasteet.push({ ...sekoitetut.pop(), lunastettu: false });
             }
         }
 
         function poistaHaaste(idx) {
             haasteet.splice(idx, 1);
-            lisaaIlmoitus("❌ Haaste poistettu. Uusi tilalle huomenna!");
+            lisaaIlmoitus("❌ Haaste poistettu. Uusi tulee tilalle huomenna!");
             paivitaKaikkiUI();
         }
 
@@ -651,6 +668,11 @@
             const alue = document.getElementById("haasteet-alue");
             if (!alue) return;
             alue.innerHTML = "";
+
+            if (haasteet.length === 0) {
+                alue.innerHTML = `<p style="color:#aaa; font-size:13px;">Ei aktiivisia asiakastilauksia. Uusia tilauksia saapuu huomenna! ☀️</p>`;
+                return;
+            }
 
             haasteet.forEach((h, idx) => {
                 let valmis = h.tarkista();
@@ -855,7 +877,6 @@
 
                 if (arvo && arvo !== "__" && !arvo.includes("_")) {
                     if (maaritys.tyyppi === 'pari') {
-                        // For locus pairs or strings like Bb, split into individual alleles
                         let chars = [arvo.substring(0, 1), arvo.substring(1, 2)];
                         chars.forEach(char => {
                             if (char && !loytyneetAlleelit[lokus].includes(char)) {
@@ -1029,7 +1050,6 @@
                 let vg = v.realGenotype;
                 let muutos = false;
                 
-                // If child is recessive, parents carrying dominant must be heterozygous
                 if (pg.B === "bb" && vg.B.includes("B")) { v.realGenotype.B = vg.B.includes("b") ? "Bb" : "Bb"; muutos = true; }
                 if (pg.D === "dd" && vg.D === "DD") { v.realGenotype.D = "Dd"; muutos = true; }
                 if (pg.E === "e1e1" && vg.E.includes("E")) { v.realGenotype.E = vg.E.includes("e1") ? "Ee1" : "Ee"; muutos = true; }
@@ -1108,7 +1128,6 @@
             document.getElementById("pelaaja-lvl").innerText = taso;
             document.getElementById("pelaaja-xp").innerText = xp % 100;
             
-            alustaHaasteet();
             alustaSaavutukset();
 
             paivitaLaumaUI();
@@ -1128,6 +1147,7 @@
             localStorage.setItem("laji_stats_v52", JSON.stringify(statsTracker));
             localStorage.setItem("laji_varasto_v52", JSON.stringify(varastoTarvikkeet));
             localStorage.setItem("laji_max_koko_v52", maxLaumaKoko);
+            localStorage.setItem("laji_haasteet_v52", JSON.stringify(haasteet));
         }
 
         function paivitaMerkitUI() {
@@ -1234,7 +1254,7 @@
 
                 if (Math.random() < 0.35) {
                     let arpa = Math.random();
-                    if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.08; // Adjusted so tail doesn't go too low
+                    if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.08;
                     else if (arpa < 0.70) animaatioTilat[elain.id].korva = 0.1;
                     else animaatioTilat[elain.id].jalka = 15;
 
@@ -1305,7 +1325,7 @@
                 silmaOpacity = 0.5;
             } else {
                 if (g.N === "nn") {
-                    turkinVari = g.O === "oo" ? "#fef0d9" : "#e67e22"; // Extra pale cream for oo + dd combo
+                    turkinVari = g.O === "oo" ? "#fef0d9" : "#e67e22";
                     if (g.D === "dd") turkinVari = g.O === "oo" ? "#fff5eb" : "#ffdfba";
                 } else if (g.N === "NN") {
                     if (g.B === "b1b1") turkinVari = "#d27d2d";
@@ -1590,6 +1610,7 @@
             });
 
             arvoPaivittaisetTehtavat();
+            arvoPaivittaisetHaasteet();
             arvoKaupanValikoima();
             paivitaKaikkiUI();
             document.getElementById("paivanvaihto-teksti").innerText = `Uusi päivä koitti! Syntyi ${syntyneetPennut} pentua. Onnellisuus laski ${lauma.length > 0 && lauma[0].realGenotype.H === "hh" ? "10%" : "20%"}.`;
@@ -1631,7 +1652,6 @@
             document.getElementById(id).classList.add('active');
             if (event) event.target.classList.add('active');
 
-            // Clear unread gene highlight flags upon visiting Codex
             if (id === 'geenikirja-sivu') {
                 uudetAlleelitIlmoitus = {};
                 lauma.forEach(e => e.uusiGeeniHuomio = false);
@@ -1655,6 +1675,7 @@
                 statsTracker = JSON.parse(localStorage.getItem("laji_stats_v52") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
                 varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v52") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
                 maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
+                haasteet = JSON.parse(localStorage.getItem("laji_haasteet_v52") || '[]');
             } else {
                 let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
                 let kantaUros = {
@@ -1681,6 +1702,7 @@
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
 
             arvoPaivittaisetTehtavat();
+            if (haasteet.length === 0) arvoPaivittaisetHaasteet();
             arvoKaupanValikoima();
             paivitaKaikkiUI();
             kaynnistaSatunnaisLiikkeet();
