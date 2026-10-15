@@ -462,7 +462,7 @@
         let kauppaUros = null;
         let kauppaNaaras = null;
 
-        let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [] };
+        let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
         let uudetAlleelitIlmoitus = {};
 
         const luonteet = ["Rauhallinen", "Vilkas", "Ujo", "Utelias"];
@@ -472,7 +472,10 @@
             N: { nimi: "Lokus N (Kuvion tyyppi)", kaikki: ["NN", "Nn", "nn"], tyyppi: "pari", kuvaus: "NN = Perusväri, Nn = Kilpikonnakuvio, nn = Oranssilokus." },
             D: { nimi: "Lokus D (Diluutio)", kaikki: ["D", "d"], tyyppi: "yksittainen", kuvaus: "Vaalentaa perusvärejä pastellisävyiksi." },
             E: { nimi: "Lokus E (Korvatyyppi)", kaikki: ["E", "e", "e1"], tyyppi: "yksittainen", kuvaus: "E = Pystykorva, e = Terrieri, e1 = Luppa." },
-            W: { nimi: "Lokus W (Valkoiset täplät)", kaikki: ["W", "w"], tyyppi: "yksittainen", kuvaus: "Luo valkoisia täpliä turkkiin." }
+            W: { nimi: "Lokus W (Valkoiset täplät)", kaikki: ["W", "w"], tyyppi: "yksittainen", kuvaus: "Luo valkoisia täpliä turkkiin." },
+            S: { nimi: "Lokus S (Koko)", kaikki: ["S", "s"], tyyppi: "yksittainen", kuvaus: "Määrittää eläimen koon (normaali vs kääpiö)." },
+            C: { nimi: "Lokus C (Palautumisaika)", kaikki: ["C", "c"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa emän palautumisaikaan pentueen jälkeen." },
+            H: { nimi: "Lokus H (Metabolia / Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." }
         };
 
         let valittuUros = null;
@@ -519,8 +522,8 @@
             { id: "vt1", kuvaus: "Kasvata naaraspuolinen pystykorvainen eläin (E_)", raha: 80, xp: 20, tarkista: () => lauma.some(e => e.sukupuoli === "♀" && e.realGenotype.E.includes("E")) },
             { id: "vt2", kuvaus: "Omista urospuolinen Calico-eläin (Nn)", raha: 90, xp: 22, tarkista: () => lauma.some(e => e.sukupuoli === "♂" && e.realGenotype.N === "Nn") },
             { id: "vt3", kuvaus: "Kasvata aikuisikään asti luppakorvainen yksilö (e1e1)", raha: 100, xp: 25, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.realGenotype.E === "e1e1") },
-            { id: "vt4", kuvaus: "Omista diluutiovärinen pentu (dd)", raha: 85, xp: 20, tarkista: () => lauma.some(e => e.ika === "pentu" && e.realGenotype.D === "dd") },
-            { id: "vt5", kuvaus: "Omista WW-geeninen täysin valkotäpläinen eläin", raha: 110, xp: 30, tarkista: () => lauma.some(e => e.realGenotype.W === "WW") }
+            { id: "vt4", kuvaus: "Omista kääpiökokoinen eläin (ss)", raha: 85, xp: 20, tarkista: () => lauma.some(e => e.realGenotype.S === "ss") },
+            { id: "vt5", kuvaus: "Omista nopea palautuja (cc)", raha: 110, xp: 30, tarkista: () => lauma.some(e => e.realGenotype.C === "cc") }
         ];
 
         function arvoPaivittaisetTehtavat() {
@@ -541,10 +544,10 @@
         }
 
         const mahdollisetHaasteet = [
-            { id: "h1", kuvaus: "Asiakastilaus: Luppakorvainen (e1e1) ja diluutiovärinen (dd) eläin!", raha: 250, xp: 35, tarkista: () => lauma.some(e => e.realGenotype.E === "e1e1" && e.realGenotype.D === "dd") },
-            { id: "h2", kuvaus: "Asiakastilaus: Calico (Nn) eläin, jolla on valkoisia täpliä (Ww/WW)", raha: 280, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.N === "Nn" && e.realGenotype.W !== "ww") },
+            { id: "h1", kuvaus: "Asiakastilaus: Luppakorvainen (e1e1) ja kääpiökokoinen (ss) eläin!", raha: 250, xp: 35, tarkista: () => lauma.some(e => e.realGenotype.E === "e1e1" && e.realGenotype.S === "ss") },
+            { id: "h2", kuvaus: "Asiakastilaus: Calico (Nn) eläin, jolla on nopea palautumisgeeni (cc)", raha: 280, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.N === "Nn" && e.realGenotype.C === "cc") },
             { id: "h3", kuvaus: "Asiakastilaus: Täysin albino tai melanistinen eläin!", raha: 400, xp: 50, tarkista: () => lauma.some(e => e.isAlbino || e.isMelanistic) },
-            { id: "h4", kuvaus: "Asiakastilaus: Kanelinvärinen (b1b1) ja pystykorvainen (E_) eläin", raha: 300, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.B === "b1b1" && e.realGenotype.E.includes("E")) }
+            { id: "h4", kuvaus: "Asiakastilaus: Zen-geeninen (hh) ja pystykorvainen (E_) eläin", raha: 300, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.H === "hh" && e.realGenotype.E.includes("E")) }
         ];
 
         function alustaHaasteet() {
@@ -568,7 +571,7 @@
             { id: "s_osto", otsikko: "Uusi tulokas", kuvaus: "Ostetut eläimet", rajat: [1, 5, 15], arvot: () => statsTracker.ostetutElaimet, rahaPalkinnot: [40, 100, 250], xpPalkinnot: [15, 30, 70] },
             { id: "s_myynti", otsikko: "Markkinamies", kuvaus: "Myydyt eläimet", rajat: [1, 5, 20], arvot: () => statsTracker.myydytElaimet, rahaPalkinnot: [30, 90, 220], xpPalkinnot: [10, 25, 60] },
             { id: "s_tarvike", otsikko: "Laboratorion asiakas", kuvaus: "Ostetut tarvikkeet/laajennukset", rajat: [1, 5, 10], arvot: () => statsTracker.ostetutTavarat, rahaPalkinnot: [50, 150, 400], xpPalkinnot: [20, 50, 120] },
-            { id: "s_geenit", otsikko: "Kaikkitietävä", kuvaus: "Löydetyt alleelit geenikirjastossa", rajat: [10, 20, 30], arvot: () => {
+            { id: "s_geenit", otsikko: "Kaikkitietävä", kuvaus: "Löydetyt alleelit geenikirjastossa", rajat: [10, 20, 35], arvot: () => {
                 let count = 0;
                 for(let l in loytyneetAlleelit) count += loytyneetAlleelit[l].length;
                 return count;
@@ -684,10 +687,10 @@
         }
 
         function haeJosSopiiHaasteeseen(el, h) {
-            if (h.id === 'h1') return el.realGenotype.E === "e1e1" && el.realGenotype.D === "dd";
-            if (h.id === 'h2') return el.realGenotype.N === "Nn" && el.realGenotype.W !== "ww";
+            if (h.id === 'h1') return el.realGenotype.E === "e1e1" && el.realGenotype.S === "ss";
+            if (h.id === 'h2') return el.realGenotype.N === "Nn" && el.realGenotype.C === "cc";
             if (h.id === 'h3') return el.isAlbino || el.isMelanistic;
-            if (h.id === 'h4') return el.realGenotype.B === "b1b1" && el.realGenotype.E.includes("E");
+            if (h.id === 'h4') return el.realGenotype.H === "hh" && el.realGenotype.E.includes("E");
             return false;
         }
 
@@ -730,7 +733,7 @@
         function laskeElaimenHinta(elain) {
             let hinta = 50;
             let fenotyyppi = haeFenotyyppiGeenit(elain);
-            let resessiivisetOsuudet = fenotyyppi.split(" ").filter(p => p.includes("bb") || p.includes("b1b1") || p.includes("oo") || p.includes("nn") || p.includes("dd") || p.includes("ee") || p.includes("e1e1"));
+            let resessiivisetOsuudet = fenotyyppi.split(" ").filter(p => p.includes("bb") || p.includes("b1b1") || p.includes("oo") || p.includes("nn") || p.includes("dd") || p.includes("ee") || p.includes("e1e1") || p.includes("ss") || p.includes("cc") || p.includes("hh"));
             hinta += resessiivisetOsuudet.length * 50;
             if (elain.isAlbino || elain.isMelanistic) hinta += 150;
             if (elain.onnellisuus >= 80) hinta = Math.round(hinta * 1.20);
@@ -749,12 +752,12 @@
         }
 
         function arvoKaupanValikoima() {
-            let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W') };
+            let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
             kauppaUros = luoOlento("Tuonti-Uros", "♂", gU, gU, "aikuinen", 4);
             kauppaUros.realGenotype = gU;
             kauppaUros.hinta = laskeElaimenHinta(kauppaUros);
 
-            let gN = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: Math.random() < 0.5 ? "nn" : "Nn", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W') };
+            let gN = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: Math.random() < 0.5 ? "nn" : "Nn", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
             kauppaNaaras = luoOlento("Tuonti-Naaras", "♀", gN, gN, "aikuinen", 4);
             kauppaNaaras.realGenotype = gN;
             kauppaNaaras.hinta = laskeElaimenHinta(kauppaNaaras);
@@ -880,6 +883,9 @@
             let eAlleeli = emaVal[Math.floor(Math.random() * 2)];
             let yhdiste = iAlleeli + eAlleeli;
             if (yhdiste === "nN") yhdiste = "Nn";
+            if (yhdiste === "sS") yhdiste = "Ss";
+            if (yhdiste === "cC") yhdiste = "Cc";
+            if (yhdiste === "hH") yhdiste = "Hh";
             return yhdiste;
         }
 
@@ -905,7 +911,10 @@
                 N: periydytaPari(isag.N || "NN", emag.N || "NN"),
                 D: periydytaLokus(isag.D || "Dd", emag.D || "Dd"),
                 E: periydytaLokus(isag.E || "EE", emag.E || "EE"),
-                W: periydytaLokus(isag.W || "ww", emag.W || "ww")
+                W: periydytaLokus(isag.W || "ww", emag.W || "ww"),
+                S: periydytaPari(isag.S || "SS", emag.S || "SS"),
+                C: periydytaPari(isag.C || "CC", emag.C || "CC"),
+                H: periydytaPari(isag.H || "HH", emag.H || "HH")
             };
 
             let calicoSpots = [];
@@ -965,7 +974,7 @@
         function haeFenotyyppiGeenit(elain) {
             let tunnetut = haeTunnetutGeenit(elain);
             let mutaatioTeksti = elain.isAlbino ? " [ALBINO]" : (elain.isMelanistic ? " [MELANISTINEN]" : "");
-            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W}${mutaatioTeksti}`;
+            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W} S:${tunnetut.S} C:${tunnetut.C} H:${tunnetut.H}${mutaatioTeksti}`;
         }
 
         function haeTunnetutGeenit(elain) {
@@ -979,8 +988,11 @@
             let dOsa = p.D || (g.D === "dd" ? "dd" : "D_");
             let eOsa = p.E || (g.E.includes("E") ? "E_" : (g.E === "e1e1" ? "e1e1" : "e_"));
             let wOsa = p.W || (g.W === "ww" ? "ww" : (g.W === "WW" ? "WW" : "Ww"));
+            let sOsa = p.S || (g.S === "ss" ? "ss" : "S_");
+            let cOsa = p.C || (g.C === "cc" ? "cc" : "C_");
+            let hOsa = p.H || (g.H === "hh" ? "hh" : "H_");
 
-            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa };
+            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa };
         }
 
         function paatteleVanhempienGeenit(pentu, isa, ema) {
@@ -993,6 +1005,9 @@
                 if (pg.B === "bb" && vg.B.includes("B")) { v.realGenotype.B = "Bb"; muutos = true; }
                 if (pg.D === "dd" && vg.D === "DD") { v.realGenotype.D = "Dd"; muutos = true; }
                 if (pg.E === "e1e1" && vg.E.includes("E")) { v.realGenotype.E = vg.E.includes("e1") ? "e1e1" : "Ee1"; muutos = true; }
+                if (pg.S === "ss" && vg.S.includes("S")) { v.realGenotype.S = vg.S.includes("s") ? "ss" : "Ss"; muutos = true; }
+                if (pg.C === "cc" && vg.C.includes("C")) { v.realGenotype.C = vg.C.includes("c") ? "cc" : "Cc"; muutos = true; }
+                if (pg.H === "hh" && vg.H.includes("H")) { v.realGenotype.H = vg.H.includes("h") ? "hh" : "Hh"; muutos = true; }
                 if (muutos) {
                     v.uusiGeeniHuomio = true;
                     tarkistaJaLisaaAlleelit(v);
@@ -1056,6 +1071,24 @@
                 ennusteet.push("Korvat: Mahdollisuus pysty-, terrieri- tai luppakorviin");
             }
 
+            if (ut.S === "ss" && nt.S === "ss") {
+                ennusteet.push("Koko: Kääpiö (ss)");
+            } else {
+                ennusteet.push("Koko: Normaali / voi kantaa kääpiögeeniä");
+            }
+
+            if (ut.C === "cc" && nt.C === "cc") {
+                ennusteet.push("Palautuminen: Nopea (1 pv, cc)");
+            } else {
+                ennusteet.push("Palautuminen: Normaali / keskitaso");
+            }
+
+            if (ut.H === "hh" && nt.H === "hh") {
+                ennusteet.push("Metabolia: Zen-geeni (-10% onnellisuuden lasku, hh)");
+            } else {
+                ennusteet.push("Metabolia: Normaali / kantaja");
+            }
+
             document.getElementById("pennun-ennuste").innerText = `Odotetut ominaisuudet (laskettu varmojen tietojen mukaan):\n• ` + ennusteet.join("\n• ");
         }
 
@@ -1076,14 +1109,14 @@
             paivitaGeenikirjaUI();
             paivitaMerkitUI();
 
-            localStorage.setItem("laji_lauma_v50", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v50", raha);
-            localStorage.setItem("laji_xp_v50", xp);
-            localStorage.setItem("laji_taso_v50", taso);
-            localStorage.setItem("laji_geenit_v50", JSON.stringify(loytyneetAlleelit));
-            localStorage.setItem("laji_stats_v50", JSON.stringify(statsTracker));
-            localStorage.setItem("laji_varasto_v50", JSON.stringify(varastoTarvikkeet));
-            localStorage.setItem("laji_max_koko_v50", maxLaumaKoko);
+            localStorage.setItem("laji_lauma_v51", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v51", raha);
+            localStorage.setItem("laji_xp_v51", xp);
+            localStorage.setItem("laji_taso_v51", taso);
+            localStorage.setItem("laji_geenit_v51", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_stats_v51", JSON.stringify(statsTracker));
+            localStorage.setItem("laji_varasto_v51", JSON.stringify(varastoTarvikkeet));
+            localStorage.setItem("laji_max_koko_v51", maxLaumaKoko);
         }
 
         function paivitaMerkitUI() {
@@ -1220,8 +1253,12 @@
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
             let asento = elain.ika === 'pentu' ? (elain.ikaPaivat <= 1 ? "makaa" : (elain.ikaPaivat === 2 ? "istuu" : "seisoo")) : "seisoo";
-            let scale = elain.ika === 'pentu' ? (elain.ikaPaivat <= 1 ? 0.055 : (elain.ikaPaivat === 2 ? 0.068 : 0.088)) : 0.098;
+            let baseScale = elain.ika === 'pentu' ? (elain.ikaPaivat <= 1 ? 0.055 : (elain.ikaPaivat === 2 ? 0.068 : 0.088)) : 0.098;
             
+            // Koko-lokuksen vaikutus (ss = pienempi kääpiökoko)
+            let scaleMultiplier = (elain.realGenotype.S === "ss") ? 0.78 : 1.0;
+            let scale = baseScale * scaleMultiplier;
+
             let anim = animaatioTilat[elain.id] || { hanta: 0, korva: 0, jalka: 0, rapaytys: false };
             let silmatKiinni = (elain.ika === 'pentu' && elain.ikaPaivat <= 1) || anim.rapaytys;
 
@@ -1502,7 +1539,10 @@
             lauma.forEach(elain => {
                 elain.ikaPaivat += 1;
                 elain.silitettyTanaan = false;
-                elain.onnellisuus = Math.max(0, elain.onnellisuus - 20);
+                
+                // Onnellisuusgeenin (H) vaikutus (hh = onnellisuus laskee vain 10%)
+                let onnellisuudenLasku = (elain.realGenotype.H === "hh") ? 10 : 20;
+                elain.onnellisuus = Math.max(0, elain.onnellisuus - onnellisuudenLasku);
 
                 if (elain.ika === "pentu" && elain.ikaPaivat >= 4) elain.ika = "aikuinen";
                 if (elain.palautumisPaivat > 0) elain.palautumisPaivat -= 1;
@@ -1511,7 +1551,10 @@
                     elain.tiineysPaivat += 1;
                     if (elain.tiineysPaivat >= 2) {
                         elain.tiineysPaivat = 0;
-                        elain.palautumisPaivat = omistaakoPentuhuone ? 4 : 7;
+                        
+                        // Palautumisgeenin (C) vaikutus (cc = 1 päivä, muuten pentuhuone tai 7 pv)
+                        let perusPalautus = (elain.realGenotype.C === "cc") ? 1 : (omistaakoPentuhuone ? 4 : 7);
+                        elain.palautumisPaivat = perusPalautus;
                         
                         let maara = (elain.onnellisuus >= 80 && Math.random() < 0.35) ? 2 : 1;
                         if (elain.kaytettyBuffTupla) maara = maara === 2 ? 3 : 2;
@@ -1536,7 +1579,7 @@
             arvoPaivittaisetTehtavat();
             arvoKaupanValikoima();
             paivitaKaikkiUI();
-            document.getElementById("paivanvaihto-teksti").innerText = `Uusi päivä koitti! Syntyi ${syntyneetPennut} pentua. Onnellisuus laski 20%.`;
+            document.getElementById("paivanvaihto-teksti").innerText = `Uusi päivä koitti! Syntyi ${syntyneetPennut} pentua. Onnellisuus laski ${lauma.length > 0 && lauma[0].realGenotype.H === "hh" ? "10%" : "20%"}.`;
             avaaModal("paivanvaihto-modal");
         }
 
@@ -1586,19 +1629,19 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v50");
+            let tLauma = localStorage.getItem("laji_lauma_v51");
             if (tLauma) {
                 lauma = JSON.parse(tLauma);
-                raha = parseInt(localStorage.getItem("laji_raha_v50") || 250);
-                xp = parseInt(localStorage.getItem("laji_xp_v50") || 0);
-                taso = parseInt(localStorage.getItem("laji_taso_v50") || 1);
-                loytyneetAlleelit = JSON.parse(localStorage.getItem("laji_geenit_v50") || '{"B":[],"O":[],"N":[],"D":[],"E":[],"W":[]}');
-                statsTracker = JSON.parse(localStorage.getItem("laji_stats_v50") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
-                varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v50") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
-                maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v50") || 8);
+                raha = parseInt(localStorage.getItem("laji_raha_v51") || 250);
+                xp = parseInt(localStorage.getItem("laji_xp_v51") || 0);
+                taso = parseInt(localStorage.getItem("laji_taso_v51") || 1);
+                loytyneetAlleelit = JSON.parse(localStorage.getItem("laji_geenit_v51") || '{"B":[],"O":[],"N":[],"D":[],"E":[],"W":[],"S":[],"C":[],"H":[]}');
+                statsTracker = JSON.parse(localStorage.getItem("laji_stats_v51") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
+                varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v51") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
+                maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v51") || 8);
             } else {
-                // TARKAT ENNALTA MÄÄRÄTYT KANTAHAHMOT PYYNTÖSI MUKAAN
-                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww" };
+                // KANTAHAHMOT PYYNTÖSI MUKAAN + UUDET GEENIT (S, C, H)
+                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1607,7 +1650,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww", S: "ss", C: "cc", H: "hh" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1619,7 +1662,7 @@
                 lauma.push(kantaUros, kantaEma);
             }
             
-            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [] };
+            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
 
             arvoPaivittaisetTehtavat();
