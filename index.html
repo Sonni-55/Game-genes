@@ -616,8 +616,6 @@
                 raha += t.raha;
                 lisaaXP(t.xp);
                 lisaaIlmoitus(`🎉 Tehtävä suoritettu: "${t.kuvaus}"!`);
-                
-                // Poistetaan tehtävä kokonaan, eikä tilalle tule uutta ennen kuin vasta päivää vaihtaessa
                 paivittaisetTehtavat.splice(idx, 1);
                 paivitaKaikkiUI();
             }
@@ -626,7 +624,6 @@
         function lunastaHaaste(idx) {
             let h = haasteet[idx];
             if (h && h.tarkista() && !h.lunastettu) {
-                h.lunastettu = true;
                 raha += h.raha;
                 lisaaXP(h.xp);
                 lisaaIlmoitus(`🎯 Haaste suoritettu: "${h.kuvaus}"!`);
@@ -754,38 +751,43 @@
         }
 
         function tarkistaJaLisaaAlleelit(elain) {
-            let tunnetut = haeTunnetutGeenit(elain);
-
-            if (tunnetut.B !== "B_") {
-                if (tunnetut.B === "b1b1") { tarkistaYksittainenAlleeli('B', 'b1'); }
-                else if (tunnetut.B === "bb") { tarkistaYksittainenAlleeli('B', 'b'); }
-                else { for (let char of tunnetut.B) { if (char !== '_') tarkistaYksittainenAlleeli('B', char); } }
-            } else {
-                tarkistaYksittainenAlleeli('B', 'B');
+            let g = elain.realGenotype;
+            
+            // Lokus B
+            for(let char of g.B) {
+                tarkistaYksittainenAlleeli('B', char);
             }
-
-            if (tunnetut.O !== "O_") {
-                if (tunnetut.O === "oo") tarkistaYksittainenAlleeli('O', 'o');
-                else { for (let char of tunnetut.O) { if (char !== '_') tarkistaYksittainenAlleeli('O', char); } }
-            } else {
-                tarkistaYksittainenAlleeli('O', 'O');
+            // Lokus O
+            for(let char of g.O) {
+                tarkistaYksittainenAlleeli('O', char);
             }
-
-            if (tunnetut.N !== "N_") tarkistaYksittainenAlleeli('N', tunnetut.N);
-
-            if (tunnetut.D === "dd") tarkistaYksittainenAlleeli('D', 'd');
-            else tarkistaYksittainenAlleeli('D', 'D');
-
-            if (tunnetut.E !== "E_") {
-                if (tunnetut.E === "e1e1") tarkistaYksittainenAlleeli('E', 'e1');
-                else if (tunnetut.E === "ee") tarkistaYksittainenAlleeli('E', 'e');
-                else { for (let char of tunnetut.E) { if (char !== '_') tarkistaYksittainenAlleeli('E', char); } }
+            // Lokus N
+            if (g.N === "Nn") {
+                tarkistaYksittainenAlleeli('N', 'N');
+                tarkistaYksittainenAlleeli('N', 'n');
             } else {
-                tarkistaYksittainenAlleeli('E', 'E');
+                for(let char of g.N) {
+                    tarkistaYksittainenAlleeli('N', char);
+                }
             }
-
-            if (tunnetut.W === "ww") tarkistaYksittainenAlleeli('W', 'w');
-            else tarkistaYksittainenAlleeli('W', 'W');
+            // Lokus D
+            for(let char of g.D) {
+                tarkistaYksittainenAlleeli('D', char);
+            }
+            // Lokus E
+            if (g.E === "e1e1") {
+                tarkistaYksittainenAlleeli('E', 'e1');
+            } else if (g.E === "ee") {
+                tarkistaYksittainenAlleeli('E', 'e');
+            } else {
+                for(let char of g.E) {
+                    if (char !== '_') tarkistaYksittainenAlleeli('E', char);
+                }
+            }
+            // Lokus W
+            for(let char of g.W) {
+                tarkistaYksittainenAlleeli('W', char);
+            }
         }
 
         function tarkistaYksittainenAlleeli(lokus, al) {
@@ -911,41 +913,44 @@
 
         function paatteleVanhempienGeenit(pentu, isa, ema) {
             if (!isa || !ema) return;
-
             let pg = pentu.realGenotype;
 
-            [isa, ema].forEach(vanhempi => {
-                if (!vanhempi.paljastetutGeenit) vanhempi.paljastetutGeenit = {};
-                let vg = vanhempi.realGenotype;
-                let uuttaLoydetty = false;
+            [
+                { vanhempi: isa, toinen: ema },
+                { vanhempi: ema, toinen: isa }
+            ].forEach(item => {
+                let v = item.vanhempi;
+                let vg = v.realGenotype;
+                let muutos = false;
 
-                if ((pg.N === "nn" || pg.N === "Nn") && vg.N === "NN" && !vanhempi.paljastetutGeenit.N) {
-                    vanhempi.paljastetutGeenit.N = "Nn";
-                    uuttaLoydetty = true;
+                // Tarkistetaan Lokus B
+                if (pg.B === "bb" && vg.B.includes("B")) {
+                    v.realGenotype.B = "Bb";
+                    muutos = true;
+                } else if (pg.B === "b1b1" && vg.B.includes("B")) {
+                    v.realGenotype.B = vg.B.includes("b1") ? "b1b1" : "Bb1";
+                    muutos = true;
                 }
 
-                if (pg.O.includes("o") && vg.O.includes("o") && !vanhempi.paljastetutGeenit.O) {
-                    vanhempi.paljastetutGeenit.O = vg.O;
-                    uuttaLoydetty = true;
+                // Tarkistetaan Lokus D (Diluutio)
+                if (pg.D === "dd" && vg.D === "DD") {
+                    v.realGenotype.D = "Dd";
+                    muutos = true;
                 }
 
-                if (pg.D === "dd" && vg.D.includes("d") && !vanhempi.paljastetutGeenit.D) {
-                    vanhempi.paljastetutGeenit.D = "Dd";
-                    uuttaLoydetty = true;
+                // Tarkistetaan Lokus E (Korvat)
+                if (pg.E === "e1e1" && vg.E.includes("E")) {
+                    v.realGenotype.E = vg.E.includes("e1") ? "e1e1" : "Ee1";
+                    muutos = true;
+                } else if (pg.E === "ee" && vg.E.includes("E")) {
+                    v.realGenotype.E = vg.E.includes("e") ? "ee" : "Ee";
+                    muutos = true;
                 }
 
-                if (pg.E === "e1e1" && vg.E.includes("e1") && !vanhempi.paljastetutGeenit.E) {
-                    vanhempi.paljastetutGeenit.E = vg.E;
-                    uuttaLoydetty = true;
-                } else if (pg.E === "ee" && vg.E.includes("e") && !vanhempi.paljastetutGeenit.E) {
-                    vanhempi.paljastetutGeenit.E = vg.E;
-                    uuttaLoydetty = true;
-                }
-
-                if (uuttaLoydetty) {
-                    vanhempi.uusiGeeniHuomio = true;
-                    tarkistaJaLisaaAlleelit(vanhempi);
-                    lisaaIlmoitus(`🧬 Piilogeeni paljastui! Eläimen ${vanhempi.nimi} genotyyppi selvisi pennun perusteella!`);
+                if (muutos) {
+                    v.uusiGeeniHuomio = true;
+                    tarkistaJaLisaaAlleelit(v);
+                    lisaaIlmoitus(`🧬 Vanhemman ${v.nimi} genotyyppi päivittyi pennun perusteella!`);
                 }
             });
         }
@@ -997,14 +1002,15 @@
                 ennusteet.push("Diluutio: Tummat sävyt / mahdollinen kantaja");
             }
 
+            // Korvatyypin ennuste lisätty selkeästi
             if (ut.E.includes("E") && nt.E.includes("E")) {
-                ennusteet.push("Korvat: Pystykorvat");
+                ennusteet.push("Korvat: Pystykorvat (E_)");
             } else if (ut.E === "e1e1" && nt.E === "e1e1") {
                 ennusteet.push("Korvat: Luppakorvat (e1e1)");
             } else if (ut.E === "ee" && nt.E === "ee") {
                 ennusteet.push("Korvat: Terrierikorvat (ee)");
             } else {
-                ennusteet.push("Korvat: Periytyy vanhemmilta");
+                ennusteet.push("Korvat: Mahdollisuus pysty-, terrieri- tai luppakorviin");
             }
 
             document.getElementById("pennun-ennuste").innerText = `Odotetut ominaisuudet (laskettu varmojen tietojen mukaan):\n• ` + ennusteet.join("\n• ");
@@ -1147,7 +1153,6 @@
             }
         }
 
-        // KORJATTU SATUNNAISLIIKE: Hahmot liikkuvat ja räpäyttelevät silmiään täysin omissa yksilöllisissä tahdeissaan
         function kaynnistaSatunnaisLiikkeet() {
             if (window.animLoopKaynnissa) return;
             window.animLoopKaynnissa = true;
@@ -1189,12 +1194,10 @@
                     }, 350 + Math.random() * 200);
                 }
 
-                // Seuraava liike tapahtuu yksilöllisellä satunnaisella viiveellä (1.5s - 4.5s)
                 let seuraavaViive = 1500 + Math.random() * 3000;
                 setTimeout(() => suoritaYksittainenAnimaatio(elain), seuraavaViive);
             }
 
-            // Käynnistetään jokaiselle eläimelle oma itsenäinen aikataulu
             lauma.forEach((elain, idx) => {
                 setTimeout(() => suoritaYksittainenAnimaatio(elain), idx * 400 + Math.random() * 1000);
             });
@@ -1436,7 +1439,6 @@
                 satunnaisetTapahtumatTeksti = ` Rauhallinen päivä aitauksessa.`;
             }
 
-            // Arvotaan uudet tehtävät VAIN päivän vaihtuessa!
             arvoPaivittaisetTehtavat();
             arvoKaupanValikoima();
             paivitaKaikkiUI();
@@ -1671,14 +1673,24 @@
             } else arvoKaupanValikoima();
 
             if (lauma.length === 0) {
-                // KANTA-ISÄ KORJATTU: Genotyyppi "Bb" eli B_ (kantaa b-alleelia, näkyy B_)
+                // KANTA-ISÄ JA EMÄ (ei mutaatioriskejä alussa)
                 let urosG = { B: "Bb", O: "OO", N: "NN", D: "Dd", E: "Ee", W: "ww" };
-                let kantaUros = luoOlento("Kanta-Uros", "♂", urosG, urosG, "aikuinen", 4);
-                kantaUros.realGenotype = urosG;
+                let kantaUros = {
+                    id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
+                    tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
+                    isAlbino: false, isMelanistic: false, luonne: "Rauhallinen", realGenotype: urosG,
+                    paljastetutGeenit: {}, eyeColor: "#2ecc71", skinColor: "#ffb6c1", calicoSpots: [], whiteSpots: [],
+                    isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
+                };
 
-                let naarasG = { B: "Bb", O: "Oo", N: "nn", D: "DD", E: "ee1", W: "ww" };
-                let kantaEma = luoOlento("Kanta-Emä", "♀", naarasG, naarasG, "aikuinen", 4);
-                kantaEma.realGenotype = naarasG;
+                let naarasG = { B: "Bb", O: "Oo", N: "NN", D: "DD", E: "e1e1", W: "ww" };
+                let kantaEma = {
+                    id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
+                    tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
+                    isAlbino: false, isMelanistic: false, luonne: "Utelias", realGenotype: naarasG,
+                    paljastetutGeenit: {}, eyeColor: "#3498db", skinColor: "#ffc0cb", calicoSpots: [], whiteSpots: [],
+                    isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
+                };
 
                 lauma.push(kantaUros);
                 lauma.push(kantaEma);
