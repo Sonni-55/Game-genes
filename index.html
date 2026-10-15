@@ -151,6 +151,7 @@
 
         .codex-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; }
         .codex-card { background: #222232; border: 2px solid #3a3a52; border-radius: 8px; padding: 15px; position: relative; }
+        .codex-card.uusi-huomio { border-color: #e74c3c; box-shadow: 0 0 8px rgba(231, 76, 60, 0.4); }
         .allele-badge { display: inline-block; background: #1a1a24; border: 1px solid #4a4af5; padding: 4px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; font-weight: bold; font-size: 12px; }
         .allele-badge.locked { border-color: #555; color: #777; }
         .codex-badge { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
@@ -271,6 +272,7 @@
 
             <div class="breed-center-box">
                 <button id="breed-btn" class="action-btn" disabled onclick="suoritaRisteytys()">BREED</button>
+                <div id="sisaisiittoisuus-varoitus" style="color: #f1c40f; font-weight: bold; font-size: 11px;"></div>
                 <div id="inbreeding-varoitus" style="color: #e74c3c; font-weight: bold; font-size: 11px;"></div>
                 
                 <div style="background:#1a1a24; padding:6px; border-radius:4px; width:100%; text-align:left;">
@@ -512,7 +514,7 @@
         const kaikkiMahdollisetTehtavat = [
             { id: "ht1", kuvaus: "Omista vähintään 3 eläintä", raha: 40, xp: 10, tarkista: () => lauma.length >= 3 },
             { id: "ht2", kuvaus: "Silitä jotain eläintä tänään", raha: 30, xp: 8, tarkista: () => lauma.some(e => e.silitettyTanaan) },
-            { id: "ht3", kuvaus: "Omista pystykorvainen eläin (E_)", raha: 35, xp: 10, tarkista: () => lauma.some(e => haeTunnetutGeenit(e).E.includes("E")) },
+            { id: "ht3", kuvaus: "Kasvata uusi pystykorvainen eläin (E_)", raha: 35, xp: 10, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto" && haeTunnetutGeenit(e).E.includes("E")) },
             { id: "ht4", kuvaus: "Kasvata 1 pentu aikuisuuteen", raha: 50, xp: 12, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto") },
             { id: "ht5", kuvaus: "Omista vähintään 5 eläintä", raha: 60, xp: 15, tarkista: () => lauma.length >= 5 },
             { id: "ht6", kuvaus: "Rapsuta kaikkia lauman eläimiä tänään", raha: 50, xp: 15, tarkista: () => lauma.length > 0 && lauma.every(e => e.silitettyTanaan) }
@@ -656,7 +658,7 @@
                 card.className = "quest-card" + (h.lunastettu ? " completed" : "");
 
                 let painikeHtml = h.lunastettu ? `<span style="color:#2ecc71; font-weight:bold;">✓ Toimitettu</span>` :
-                    (valmis ? `<button class="action-btn" style="width:auto; margin:0; background:#2ecc71;" onclick="avaaHaasteenToimitus(${idx})">Toimita asiakkaalle (+${h.raha}€)</button>` :
+                    (valmis ? `<div style="display:flex; gap:6px;"><button class="action-btn" style="width:auto; margin:0; background:#2ecc71; padding:6px 10px;" onclick="avaaHaasteenToimitus(${idx})">Toimita</button><button class="sell-btn" style="padding:6px 10px;" onclick="poistaHaaste(${idx})">Poista ❌</button></div>` :
                     `<button class="sell-btn" style="padding:6px 10px;" onclick="poistaHaaste(${idx})"> Poista ❌</button>`);
 
                 card.innerHTML = `<div><b style="font-size:14px; color:${valmis ? '#2ecc71' : '#fff'};">${h.kuvaus}</b><br><span style="font-size:11px; color:#aaa;">Palkkio: 💰 ${h.raha} € | ⭐ ${h.xp} XP</span></div><div>${painikeHtml}</div>`;
@@ -845,7 +847,7 @@
         }
 
         function tarkistaJaLisaaAlleelit(elain) {
-            let g = haeTunnetutGeenit(elain);
+            let g = elain.realGenotype;
             for (let lokus in geenitMaaritykset) {
                 let maaritys = geenitMaaritykset[lokus];
                 let arvo = g[lokus];
@@ -853,17 +855,23 @@
 
                 if (arvo && arvo !== "__" && !arvo.includes("_")) {
                     if (maaritys.tyyppi === 'pari') {
-                        if (!loytyneetAlleelit[lokus].includes(arvo)) {
-                            loytyneetAlleelit[lokus].push(arvo);
-                            uudetAlleelitIlmoitus[lokus] = true;
-                            lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${arvo}!`);
-                        }
+                        // For locus pairs or strings like Bb, split into individual alleles
+                        let chars = [arvo.substring(0, 1), arvo.substring(1, 2)];
+                        chars.forEach(char => {
+                            if (char && !loytyneetAlleelit[lokus].includes(char)) {
+                                loytyneetAlleelit[lokus].push(char);
+                                uudetAlleelitIlmoitus[lokus] = true;
+                                elain.uusiGeeniHuomio = true;
+                                lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+                            }
+                        });
                     } else {
                         for (let i = 0; i < arvo.length; i++) {
                             let char = arvo[i];
                             if (char !== '_' && !loytyneetAlleelit[lokus].includes(char)) {
                                 loytyneetAlleelit[lokus].push(char);
                                 uudetAlleelitIlmoitus[lokus] = true;
+                                elain.uusiGeeniHuomio = true;
                                 lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
                             }
                         }
@@ -873,9 +881,9 @@
         }
 
         function periydytaLokus(isaAlleelit, emaAlleelit) {
-            let isaValinta = isaAlleelit[Math.floor(Math.random() * isaAlleelit.length)];
-            let emaValinta = emaAlleelit[Math.floor(Math.random() * emaAlleelit.length)];
-            return isaValinta + emaValinta;
+            let iAlleeli = isaAlleelit[Math.floor(Math.random() * isaAlleelit.length)];
+            let eAlleeli = emaAlleelit[Math.floor(Math.random() * emaAlleelit.length)];
+            return iAlleeli + eAlleeli;
         }
 
         function periydytaPari(isaVal, emaVal) {
@@ -980,9 +988,7 @@
         function haeTunnetutGeenit(elain) {
             if (omistaakoAnalysaattori) return elain.realGenotype;
             let g = elain.realGenotype;
-            let p = elain.paljastetutGeenit || {};
 
-            // B-lokus näkyy vain jos N ei ole nn (oranssi peittää mustan/ruskean)
             let bOsa = "__";
             if (g.N !== "nn") {
                 if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
@@ -990,7 +996,6 @@
                 else bOsa = "B_";
             }
 
-            // O-lokus näkyy jos N on nn tai Nn (Oranssi ja Calico näyttävät o-lokuksen)
             let oOsa = "__";
             if (g.N === "nn" || g.N === "Nn") {
                 if (g.O === "oo") oOsa = "oo";
@@ -1000,15 +1005,10 @@
             let nOsa = g.N;
             let dOsa = (g.D === "dd") ? "dd" : "D_";
 
-            // E-lokus: Jos genotyypissä on E, se on aina Pystykorva (E_). Muuten terrieri/luppa (e_ tai e1e1).
-            let eOsa = "e_";
-            if (g.E.includes("E")) {
-                eOsa = "E_";
-            } else if (g.E === "e1e1") {
-                eOsa = "e1e1";
-            } else {
-                eOsa = "e_";
-            }
+            let eOsa = "E_";
+            if (g.E === "e1e1") eOsa = "e1e1";
+            else if (g.E === "ee" || g.E.includes("e")) eOsa = "ee";
+            else eOsa = "E_";
 
             let wOsa = "ww";
             if (g.W === "WW") wOsa = "WW";
@@ -1028,12 +1028,15 @@
             [isa, ema].forEach(v => {
                 let vg = v.realGenotype;
                 let muutos = false;
-                if (pg.B === "bb" && vg.B.includes("B")) { v.realGenotype.B = "Bb"; muutos = true; }
+                
+                // If child is recessive, parents carrying dominant must be heterozygous
+                if (pg.B === "bb" && vg.B.includes("B")) { v.realGenotype.B = vg.B.includes("b") ? "Bb" : "Bb"; muutos = true; }
                 if (pg.D === "dd" && vg.D === "DD") { v.realGenotype.D = "Dd"; muutos = true; }
-                if (pg.E === "e1e1" && vg.E.includes("E")) { v.realGenotype.E = vg.E.includes("e1") ? "e1e1" : "Ee1"; muutos = true; }
-                if (pg.S === "ss" && vg.S.includes("S")) { v.realGenotype.S = vg.S.includes("s") ? "ss" : "Ss"; muutos = true; }
-                if (pg.C === "cc" && vg.C.includes("C")) { v.realGenotype.C = vg.C.includes("c") ? "cc" : "Cc"; muutos = true; }
-                if (pg.H === "hh" && vg.H.includes("H")) { v.realGenotype.H = vg.H.includes("h") ? "hh" : "Hh"; muutos = true; }
+                if (pg.E === "e1e1" && vg.E.includes("E")) { v.realGenotype.E = vg.E.includes("e1") ? "Ee1" : "Ee"; muutos = true; }
+                if (pg.S === "ss" && vg.S.includes("S")) { v.realGenotype.S = "Ss"; muutos = true; }
+                if (pg.C === "cc" && vg.C.includes("C")) { v.realGenotype.C = "Cc"; muutos = true; }
+                if (pg.H === "hh" && vg.H.includes("H")) { v.realGenotype.H = "Hh"; muutos = true; }
+
                 if (muutos) {
                     v.uusiGeeniHuomio = true;
                     tarkistaJaLisaaAlleelit(v);
@@ -1056,48 +1059,48 @@
         function paivitaEnnuste() {
             if (!valittuUros || !valittuNaaras) {
                 document.getElementById("pennun-ennuste").innerText = `Valitse vanhemmat ennustetta varten`;
+                document.getElementById("sisaisiittoisuus-varoitus").innerText = "";
                 return;
             }
 
-            let ut = haeTunnetutGeenit(valittuUros);
-            let nt = haeTunnetutGeenit(valittuNaaras);
+            let sis = laskeSisaisiittoisuus(valittuUros, valittuNaaras);
+            document.getElementById("sisaisiittoisuus-varoitus").innerText = sis.teksti;
+
+            let ut = valittuUros.realGenotype;
+            let nt = valittuNaaras.realGenotype;
             let ennusteet = [];
 
-            if ((ut.N === "NN" && nt.N === "nn") || (ut.N === "nn" && nt.N === "NN")) {
-                ennusteet.push("Kuvio: Calico / kilpikonnakuvio (Nn)");
-            } else if (ut.N === "NN" && nt.N === "NN") {
+            if (ut.N === "NN" && nt.N === "NN") {
                 ennusteet.push("Kuvio: Perusväri (NN)");
             } else if (ut.N === "nn" && nt.N === "nn") {
                 ennusteet.push("Kuvio: Oranssi (nn)");
+            } else if ((ut.N === "NN" && nt.N === "nn") || (ut.N === "nn" && nt.N === "NN")) {
+                ennusteet.push("Kuvio: Kilpikonnakuvio / Calico (Nn)");
             } else {
-                ennusteet.push("Kuvio: Vaihtelee (NN, Nn tai nn)");
+                ennusteet.push("Kuvio: Mahdollisuus perusväriin, Calicoon tai Oranssiin (NN, Nn, nn)");
             }
 
-            if (ut.B === "bb" && nt.B === "bb") {
-                ennusteet.push("Väri: Ruskea (bb)");
-            } else if (ut.B === "b1b1" && nt.B === "b1b1") {
-                ennusteet.push("Väri: Kaneli (b1b1)");
+            if (ut.B.includes("b") && nt.B.includes("b")) {
+                ennusteet.push("Väri: Mahdollisuus mustaan, ruskeaan tai kaneliin");
             } else {
-                ennusteet.push("Väri: Musta / kantaa värejä");
+                ennusteet.push("Väri: Tumma perusväri");
             }
 
             if (ut.D === "dd" && nt.D === "dd") {
-                ennusteet.push("Diluutio: Haalistunut / pastelli (dd)");
+                ennusteet.push("Diluutio: Haalistunut pastellisävy (dd)");
             } else {
-                ennusteet.push("Diluutio: Tummat sävyt / mahdollinen kantaja");
+                ennusteet.push("Diluutio: Normaalit sävyt / mahdollinen kantaja");
             }
 
             if (ut.E.includes("E") && nt.E.includes("E")) {
                 ennusteet.push("Korvat: Pystykorvat (E_)");
             } else if (ut.E === "e1e1" && nt.E === "e1e1") {
                 ennusteet.push("Korvat: Luppakorvat (e1e1)");
-            } else if (ut.E === "ee" && nt.E === "ee") {
-                ennusteet.push("Korvat: Terrierikorvat (ee)");
             } else {
-                ennusteet.push("Korvat: Mahdollisuus pysty-, terrieri- tai luppakorviin");
+                ennusteet.push("Korvat: Vaihtelee (pysty-, terrieri- tai luppakorvat)");
             }
 
-            document.getElementById("pennun-ennuste").innerText = `Odotetut ominaisuudet (laskettu varmojen tietojen mukaan):\n• ` + ennusteet.join("\n• ");
+            document.getElementById("pennun-ennuste").innerText = `Odotetut ominaisuudet:\n• ` + ennusteet.join("\n• ");
         }
 
         function paivitaKaikkiUI() {
@@ -1171,7 +1174,12 @@
                         <p style="margin:3px 0;"><b>Geenit:</b> ${haeFenotyyppiGeenit(elain)}</p>
                     </div>
                 `;
-                kortti.onclick = (e) => { if(e.target.tagName === 'BUTTON') return; elain.uusiGeeniHuomio = false; kortti.classList.toggle('auki'); paivitaMerkitUI(); };
+                kortti.onclick = (e) => { 
+                    if(e.target.tagName === 'BUTTON') return; 
+                    elain.uusiGeeniHuomio = false; 
+                    kortti.classList.toggle('auki'); 
+                    paivitaMerkitUI(); 
+                };
                 alue.appendChild(kortti);
                 piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
             });
@@ -1226,7 +1234,7 @@
 
                 if (Math.random() < 0.35) {
                     let arpa = Math.random();
-                    if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.15;
+                    if (arpa < 0.35) animaatioTilat[elain.id].hanta = -0.08; // Adjusted so tail doesn't go too low
                     else if (arpa < 0.70) animaatioTilat[elain.id].korva = 0.1;
                     else animaatioTilat[elain.id].jalka = 15;
 
@@ -1297,8 +1305,8 @@
                 silmaOpacity = 0.5;
             } else {
                 if (g.N === "nn") {
-                    turkinVari = g.O === "oo" ? "#f5deb3" : "#e67e22";
-                    if (g.D === "dd") turkinVari = "#ffdfba";
+                    turkinVari = g.O === "oo" ? "#fef0d9" : "#e67e22"; // Extra pale cream for oo + dd combo
+                    if (g.D === "dd") turkinVari = g.O === "oo" ? "#fff5eb" : "#ffdfba";
                 } else if (g.N === "NN") {
                     if (g.B === "b1b1") turkinVari = "#d27d2d";
                     else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") turkinVari = "#8b5a2b";
@@ -1387,7 +1395,7 @@
 
             piirraOsa(kuvat.lahempi_takajalka_vari, kuvat.lahempi_takajalka_viivat, turkinVari);
 
-            let onkoTerrier = !g.E.includes("E");
+            let onkoTerrier = g.E === "ee";
             let onkoLuppa = g.E === "e1e1";
 
             if (onkoTerrier && !onkoLuppa) piirraOsa(kuvat.pohjimmainen_terrierkorva_vari, kuvat.pohjimmainen_terrierkorva_viivat, turkinVari);
@@ -1598,7 +1606,7 @@
                 let loydetyt = loytyneetAlleelit[lokus] || [];
 
                 let card = document.createElement("div");
-                card.className = "codex-card";
+                card.className = "codex-card" + (uudetAlleelitIlmoitus[lokus] ? " uusi-huomio" : "");
                 let badgeHtml = uudetAlleelitIlmoitus[lokus] ? `<div class="codex-badge">!</div>` : "";
 
                 let alleelitHtml = info.kaikki.map(al => {
@@ -1613,12 +1621,6 @@
                     <p style="margin-top: 8px; font-size:12px;"><b>Löydetyt alleelit:</b><br>${alleelitHtml}</p>
                 `;
 
-                card.onclick = () => {
-                    delete uudetAlleelitIlmoitus[lokus];
-                    paivitaMerkitUI();
-                    paivitaGeenikirjaUI();
-                };
-
                 alue.appendChild(card);
             }
         }
@@ -1628,6 +1630,15 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             if (event) event.target.classList.add('active');
+
+            // Clear unread gene highlight flags upon visiting Codex
+            if (id === 'geenikirja-sivu') {
+                uudetAlleelitIlmoitus = {};
+                lauma.forEach(e => e.uusiGeeniHuomio = false);
+                paivitaMerkitUI();
+                paivitaGeenikirjaUI();
+            }
+
             if (id === 'jalostus-sivu') paivitaJalostusUI();
             if (id === 'saavutukset-sivu') paivitaSaavutuksetUI();
             if (id === 'kauppa-sivu') paivitaKauppaUI();
@@ -1645,7 +1656,6 @@
                 varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v52") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
                 maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
             } else {
-                // TARKAT KANTAHAHMOT PYYNTÖSI MUKAAN
                 let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
@@ -1655,7 +1665,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "ee1", W: "ww", S: "ss", C: "cc", H: "hh" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww", S: "ss", C: "cc", H: "hh" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
