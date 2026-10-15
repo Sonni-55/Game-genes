@@ -660,23 +660,25 @@
             let gU = {
                 B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'),
                 O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'),
-                N: arvoKaupanAlleeli('N') === 'Nn' ? 'Nn' : (arvoKaupanAlleeli('N') === 'nn' ? 'nn' : 'NN'),
+                N: "NN", // Musta uros on aina NN
                 D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'),
                 E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'),
                 W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W')
             };
             kauppaUros = luoOlento("Tuonti-Uros", "♂", gU, gU, "aikuinen", 4);
+            kauppaUros.realGenotype = gU;
             kauppaUros.hinta = laskeElaimenHinta(kauppaUros);
 
             let gN = {
                 B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'),
                 O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'),
-                N: arvoKaupanAlleeli('N') === 'Nn' ? 'Nn' : (arvoKaupanAlleeli('N') === 'nn' ? 'nn' : 'NN'),
+                N: Math.random() < 0.5 ? "nn" : "Nn",
                 D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'),
                 E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'),
                 W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W')
             };
             kauppaNaaras = luoOlento("Tuonti-Naaras", "♀", gN, gN, "aikuinen", 4);
+            kauppaNaaras.realGenotype = gN;
             kauppaNaaras.hinta = laskeElaimenHinta(kauppaNaaras);
         }
 
@@ -845,7 +847,7 @@
                 isMelanistic: isMelanistic,
                 luonne: luonteet[Math.floor(Math.random() * luonteet.length)],
                 realGenotype: realG,
-                paljastetutGeenit: {}, // Tähän tallentuvat päätellyt alleelit!
+                paljastetutGeenit: {},
                 eyeColor: eyeColor,
                 skinColor: skinColor,
                 calicoSpots: calicoSpots,
@@ -864,7 +866,6 @@
             return uusi;
         }
 
-        // PALAUTTAA NÄKYVÄT FENOTYYPPIGEENIT ELÄIMELLE
         function haeFenotyyppiGeenit(elain) {
             let tunnetut = haeTunnetutGeenit(elain);
             let mutaatioTeksti = elain.isAlbino ? " [ALBINO]" : (elain.isMelanistic ? " [MELANISTINEN]" : "");
@@ -872,7 +873,6 @@
             return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W}${mutaatioTeksti}`;
         }
 
-        // HAKEE ELÄIMELLE PALJASTETUT/PÄÄTELDYT GEENIT
         function haeTunnetutGeenit(elain) {
             if (omistaakoAnalysaattori) return elain.realGenotype;
             
@@ -889,7 +889,6 @@
             return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa };
         }
 
-        // AITO GENETIIKAN PÄÄTTELYMEKANISMI: PÄÄTTELEE VANHEMPIEN PIILOGEENIT PENNUSTA
         function paatteleVanhempienGeenit(pentu, isa, ema) {
             if (!isa || !ema) return;
 
@@ -900,32 +899,28 @@
                 let vg = vanhempi.realGenotype;
                 let uuttaLoydetty = false;
 
-                // 1. Jos pentu on oranssilokus (nn) tai calico (Nn) -> vanhemmalla On pakko olla 'n'-alleeli
                 if ((pg.N === "nn" || pg.N === "Nn") && vg.N === "NN") {
                     vanhempi.paljastetutGeenit.N = "Nn";
                     uuttaLoydetty = true;
                 }
 
-                // 2. Jos vanhemmalla näkyy oranssi (O_) ja pentu saa 'o' -> paljastetaan Oranssigeeni (Oo)
                 if (pg.O.includes("o") && vg.O === "Oo" && !vanhempi.paljastetutGeenit.O) {
                     vanhempi.paljastetutGeenit.O = "Oo";
                     uuttaLoydetty = true;
                 }
 
-                // 3. Jos pentu on diluutio (dd) -> molempien vanhempien täytyy kantaa 'd'-alleelia (Dd)
                 if (pg.D === "dd" && vg.D === "Dd" && !vanhempi.paljastetutGeenit.D) {
                     vanhempi.paljastetutGeenit.D = "Dd";
                     uuttaLoydetty = true;
                 }
 
-                // 4. Jos pentu on resessiivinen korva (e1e1/ee) -> vanhempi kantaa kyseistä korvageeniä
                 if ((pg.E === "e1e1" || pg.E === "ee") && vg.E.includes("E") && !vanhempi.paljastetutGeenit.E) {
                     vanhempi.paljastetutGeenit.E = vg.E;
                     uuttaLoydetty = true;
                 }
 
                 if (uuttaLoydetty) {
-                    vanhempi.uusiGeeniHuomio = true; // Laitetaan huutomerkki kortin kulmaan!
+                    vanhempi.uusiGeeniHuomio = true;
                     tarkistaJaLisaaAlleelit(vanhempi);
                     lisaaIlmoitus(`🧬 Piilogeeni paljastui! Eläimen ${vanhempi.nimi} genotyyppi selvisi pennun perusteella!`);
                 }
@@ -961,7 +956,7 @@
             } else if (ut.N === "NN" && nt.N === "NN") {
                 ennusteet.push("Kuvio: Perusväri, ei kilpikonnakuviota (NN)");
             } else if (ut.N === "nn" && nt.N === "nn") {
-                ennusteet.push("Kuvio: Täysin oranssi turkki (nn)");
+                ennusteet.push("Kuvio: Täksi oranssi turkki (nn)");
             } else {
                 ennusteet.push("Kuvio: Vaihtelee (NN, Nn tai nn mahdollinen)");
             }
@@ -998,7 +993,7 @@
                 ennusteet.push("Täplät: Mahdollisesti valkoisia täpliä (Ww/ww)");
             }
 
-            document.getElementById("pennun-ennuste").innerText = `Odotetut tunnetut ominaisuudet:\n• ` + ennusteet.join("\n• ");
+            document.getElementById("pennun-ennuste").innerText = `Odotetut tunnetut ominaisuudet (laskettu varmojen tietojen mukaan):\n• ` + ennusteet.join("\n• ");
         }
 
         function paivitaKaikkiUI() {
@@ -1339,7 +1334,14 @@
                 card.className = "codex-card";
                 
                 let badgeHtml = uudetAlleelitIlmoitus[lokus] ? `<div class="codex-badge">!</div>` : "";
-                let alleelitHtml = info.kaikki.map(al => loydetyt.includes(al) ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`).join("");
+                
+                // Jos lokuksesta ei ole vielä löydetty yhtään alleelia, näytetään se lukittuna eikä paljasteta kaikkia kirjaimia etukäteen!
+                let alleelitHtml = "";
+                if (loydetyt.length === 0) {
+                    alleelitHtml = `<span style="font-size:12px; color:#777;">🔒 Lukittu – ei löydettyjä geenejä tässä lokuksessa</span>`;
+                } else {
+                    alleelitHtml = info.kaikki.map(al => loydetyt.includes(al) ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`).join("");
+                }
 
                 card.innerHTML = `
                     ${badgeHtml}
@@ -1388,7 +1390,6 @@
                             let sp = aktiivinenBuffSukupuoli ? aktiivinenBuffSukupuoli : (Math.random() < 0.5 ? "♂" : "♀");
                             let uusi = luoOlento("Pentu-" + (lauma.length + 1), sp, isaObj.realGenotype, elain.realGenotype, "pentu", 0, isaObj, elain);
                             
-                            // PAATTELE VANHEMPIEN PIILOGEENIT PENNUN SYNTYMÄSTÄ:
                             paatteleVanhempienGeenit(uusi, isaObj, elain);
 
                             lauma.push(uusi);
@@ -1446,14 +1447,19 @@
                 viivaVari = "#555566";
                 silmaOpacity = 0.5;
             } else {
-                if (g.N === "nn") turkinVari = g.O === "oo" ? "#f5deb3" : "#e67e22";
-                else if (g.N === "NN") {
+                // KORJATTU VÄRILOGIIKKA: Oranssi/punainen (nn) ei muutu harmaaksi diluutiolla vaan vaaleaksi kermaksi/aprikoosiksi!
+                if (g.N === "nn") {
+                    turkinVari = g.O === "oo" ? "#f5deb3" : "#e67e22";
+                    if (g.D === "dd") turkinVari = "#ffdfba"; // vaalea kerma/aprikoosi diluutiolla
+                } else if (g.N === "NN") {
                     if (g.B === "b1b1") turkinVari = "#d27d2d";
                     else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") turkinVari = "#8b5a2b";
                     else turkinVari = "#222222";
-                } else turkinVari = (g.B === "bb" || g.B === "b1b" || g.B === "bb1") ? "#8b5a2b" : "#222222";
-
-                if (g.D === "dd") turkinVari = g.N === "nn" && g.O === "oo" ? "#faf0e6" : "#778899";
+                    if (g.D === "dd") turkinVari = "#778899"; // Harmaa vain mustalle/ruskealle/kanelille!
+                } else { // Nn (Calico)
+                    turkinVari = (g.B === "bb" || g.B === "b1b" || g.B === "bb1") ? "#8b5a2b" : "#222222";
+                    if (g.D === "dd") turkinVari = "#778899";
+                }
             }
 
             const w = 2163; const h = 1361;
