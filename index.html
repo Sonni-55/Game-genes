@@ -529,53 +529,90 @@
             paivitaKaikkiUI();
         }
 
-        const kaikkiMahdollisetTehtavat = [
+                // 1. Ominaisuuslista dynaamisia tehtäviä ja haasteita varten (korjatuilla terrierikorvilla)
+        const tehtavaOminaisuudet = {
+            vari: [
+                { avain: "musta", nimi: "musta", tarkista: e => { let g = haeTunnetutGeenit(e); return g.N !== "nn" && (g.B.includes("B") || g.B === "__"); } },
+                { avain: "ruskea", nimi: "ruskea", tarkista: e => e.realGenotype.B.includes("b") && !e.realGenotype.B.includes("B") },
+                { avain: "oranssi", nimi: "oranssi", tarkista: e => e.realGenotype.N === "nn" }
+            ],
+            korvat: [
+                { avain: "pysty", nimi: "pystykorvainen", tarkista: e => haeTunnetutGeenit(e).E.includes("E") },
+                { avain: "terrieri", nimi: "terrierikorvainen", tarkista: e => (e.realGenotype.E === "ee" || e.realGenotype.E === "ee1" || e.realGenotype.E === "e1e") },
+                { avain: "luppa", nimi: "luppakorvainen", tarkista: e => e.realGenotype.E === "e1e1" }
+            ],
+            kuvio: [
+                { avain: "valkotaplainen", nimi: "valkotäpläinen", tarkista: e => e.realGenotype.W.includes("W") },
+                { avain: "calico", nimi: "Calico / kilpikonnakuvioinen", tarkista: e => e.realGenotype.N === "Nn" }
+            ]
+        };
+
+        // 2. Apufunktio kasvatustehtävän luomiseen lennosta
+        function luoSatunnainenKasvatusTehtava() {
+            const kategoriat = ["vari", "korvat", "kuvio"];
+            const valittuKategoria = kategoriat[Math.floor(Math.random() * kategoriat.length)];
+            const lista = tehtavaOminaisuudet[valittuKategoria];
+            const valittuOminaisuus = lista[Math.floor(Math.random() * lista.length)];
+
+            const id = "dyn_t_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+            return {
+                id: id,
+                kuvaus: `Kasvata uusi ${valittuOminaisuus.nimi} eläin`,
+                raha: 45,
+                xp: 12,
+                lunastettu: false,
+                tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto" && valittuOminaisuus.tarkista(e))
+            };
+        }
+
+        // 3. Apufunktio asiakastilauksen (haasteen) luomiseen lennosta
+        function luoSatunnainenHaaste() {
+            const k1 = tehtavaOminaisuudet.korvat[Math.floor(Math.random() * tehtavaOminaisuudet.korvat.length)];
+            const k2 = tehtavaOminaisuudet.kuvio[Math.floor(Math.random() * tehtavaOminaisuudet.kuvio.length)];
+
+            const id = "dyn_h_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+            return {
+                id: id,
+                kuvaus: `Asiakastilaus: ${k1.nimi} ja ${k2.nimi} eläin!`,
+                raha: 250 + Math.floor(Math.random() * 100),
+                xp: 35 + Math.floor(Math.random() * 15),
+                lunastettu: false,
+                tarkista: () => lauma.some(e => k1.tarkista(e) && k2.tarkista(e))
+            };
+        }
+
+        // 4. Päivittäiset tehtävät (sekoittaa dynaamisia kasvatustehtäviä ja perustehtäviä)
+        const perusTehtavaPohjat = [
             { id: "ht1", kuvaus: "Omista vähintään 3 eläintä", raha: 40, xp: 10, tarkista: () => lauma.length >= 3 },
             { id: "ht2", kuvaus: "Silitä jotain eläintä tänään", raha: 30, xp: 8, tarkista: () => lauma.some(e => e.silitettyTanaan) },
-            { id: "ht3", kuvaus: "Kasvata uusi pystykorvainen eläin (E_)", raha: 35, xp: 10, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto" && haeTunnetutGeenit(e).E.includes("E")) },
-            { id: "ht4", kuvaus: "Kasvata 1 pentu aikuisuuteen", raha: 50, xp: 12, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.isaNimi !== "Luonto") },
             { id: "ht5", kuvaus: "Omista vähintään 5 eläintä", raha: 60, xp: 15, tarkista: () => lauma.length >= 5 },
             { id: "ht6", kuvaus: "Rapsuta kaikkia lauman eläimiä tänään", raha: 50, xp: 15, tarkista: () => lauma.length > 0 && lauma.every(e => e.silitettyTanaan) }
         ];
 
-        const vaativatTehtavat = [
-            { id: "vt1", kuvaus: "Kasvata naaraspuolinen pystykorvainen eläin (E_)", raha: 80, xp: 20, tarkista: () => lauma.some(e => e.sukupuoli === "♀" && haeTunnetutGeenit(e).E.includes("E")) },
-            { id: "vt2", kuvaus: "Omista urospuolinen Calico-eläin (Nn)", raha: 90, xp: 22, tarkista: () => lauma.some(e => e.sukupuoli === "♂" && e.realGenotype.N === "Nn") },
-            { id: "vt3", kuvaus: "Kasvata aikuisikään asti luppakorvainen yksilö (e1e1)", raha: 100, xp: 25, tarkista: () => lauma.some(e => e.ika === "aikuinen" && e.realGenotype.E === "e1e1") },
-            { id: "vt4", kuvaus: "Omista kääpiökokoinen eläin (ss)", raha: 85, xp: 20, tarkista: () => lauma.some(e => e.realGenotype.S === "ss") },
-            { id: "vt5", kuvaus: "Omista nopea palautuja (cc)", raha: 110, xp: 30, tarkista: () => lauma.some(e => e.realGenotype.C === "cc") }
-        ];
-
         function arvoPaivittaisetTehtavat() {
             let valitut = [];
-            let vaativiaMaara = taso >= 15 ? 3 : (taso >= 10 ? 2 : (taso >= 5 ? 1 : 0));
-            let vSekoitettu = [...vaativatTehtavat].sort(() => 0.5 - Math.random());
-            let hSekoitettu = [...kaikkiMahdollisetTehtavat].sort(() => 0.5 - Math.random());
+            // Luodaan kaksi dynaamista kasvatustehtävää
+            valitut.push(luoSatunnainenKasvatusTehtava());
+            valitut.push(luoSatunnainenKasvatusTehtava());
 
-            for (let i = 0; i < vaativiaMaara; i++) {
-                if (vSekoitettu[i]) valitut.push({ ...vSekoitettu[i], lunastettu: false });
+            // Otetaan yksi satunnainen perustehtävä kaveriksi
+            let sekoitetutPerus = [...perusTehtavaPohjat].sort(() => 0.5 - Math.random());
+            if (sekoitetutPerus.length > 0) {
+                valitut.push({ ...sekoitetutPerus[0], lunastettu: false });
             }
-            while (valitut.length < 3) {
-                let h = hSekoitettu.pop();
-                if (h && !valitut.some(v => v.id === h.id)) valitut.push({ ...h, lunastettu: false });
-                else break;
-            }
+
             paivittaisetTehtavat = valitut;
         }
 
-        const mahdollisetHaasteet = [
-            { id: "h1", kuvaus: "Asiakastilaus: Luppakorvainen (e1e1) ja kääpiökokoinen (ss) eläin!", raha: 250, xp: 35, tarkista: () => lauma.some(e => e.realGenotype.E === "e1e1" && e.realGenotype.S === "ss") },
-            { id: "h2", kuvaus: "Asiakastilaus: Calico (Nn) eläin, jolla on nopea palautumisgeeni (cc)", raha: 280, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.N === "Nn" && e.realGenotype.C === "cc") },
-            { id: "h3", kuvaus: "Asiakastilaus: Täysin albino tai melanistinen eläin!", raha: 400, xp: 50, tarkista: () => lauma.some(e => e.isAlbino || e.isMelanistic) },
-            { id: "h4", kuvaus: "Asiakastilaus: Zen-geeninen (hh) ja pystykorvainen (E_) eläin", raha: 300, xp: 40, tarkista: () => lauma.some(e => e.realGenotype.H === "hh" && haeTunnetutGeenit(e).E.includes("E")) }
-        ];
-
+        // 5. Päivittäiset haasteet (luo dynaamisia asiakastilauksia)
         function arvoPaivittaisetHaasteet() {
-            let sekoitetut = [...mahdollisetHaasteet].filter(m => !haasteet.some(h => h.id === m.id)).sort(() => 0.5 - Math.random());
-            while (haasteet.length < 3 && sekoitetut.length > 0) {
-                haasteet.push({ ...sekoitetut.pop(), lunastettu: false });
+            while (haasteet.length < 3) {
+                haasteet.push(luoSatunnainenHaaste());
             }
         }
+
 
         function poistaHaaste(idx) {
             haasteet.splice(idx, 1);
