@@ -1745,47 +1745,56 @@
             });
         }
 
-        function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v52");
-            if (tLauma) {
-                lauma = JSON.parse(tLauma);
-                raha = parseInt(localStorage.getItem("laji_raha_v52") || 250);
-                xp = parseInt(localStorage.getItem("laji_xp_v52") || 0);
-                taso = parseInt(localStorage.getItem("laji_taso_v52") || 1);
-                statsTracker = JSON.parse(localStorage.getItem("laji_stats_v52") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
-                varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v52") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
-                maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
-                haasteet = JSON.parse(localStorage.getItem("laji_haasteet_v52") || '[]');
-            } else {
-                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh", T: "TT" };
-                let kantaUros = {
-                    id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
-                    tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
-                    isAlbino: false, isMelanistic: false, luonne: "Rauhallinen", realGenotype: urosG,
-                    paljastetutGeenit: {}, eyeColor: "#2ecc71", skinColor: "#ffb6c1", calicoSpots: [], whiteSpots: [],
-                    isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
-                };
+                function lataaPeli() {
+            try {
+                let tLauma = localStorage.getItem("laji_lauma_v52");
+                if (tLauma) {
+                    lauma = JSON.parse(tLauma);
+                    raha = parseInt(localStorage.getItem("laji_raha_v52") || 250);
+                    xp = parseInt(localStorage.getItem("laji_xp_v52") || 0);
+                    taso = parseInt(localStorage.getItem("laji_taso_v52") || 1);
+                    loytyneetAlleelit = JSON.parse(localStorage.getItem("laji_geenit_v52") || '{"B":[],"O":[],"N":[],"D":[],"E":[],"W":[],"S":[],"C":[],"H":[]}');
+                    statsTracker = JSON.parse(localStorage.getItem("laji_stats_v52") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
+                    varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v52") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
+                    maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
+                    haasteet = JSON.parse(localStorage.getItem("laji_haasteet_v52") || '[]');
+                }
+                
+                // Hätätarkistus: jos lauma on tyhjä, luodaan aina kantaeläimet, jotta peli ei jumiudu!
+                if (!lauma || lauma.length === 0) {
+                    let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
+                    let kantaUros = {
+                        id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
+                        tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
+                        isAlbino: false, isMelanistic: false, luonne: "Rauhallinen", realGenotype: urosG,
+                        paljastetutGeenit: {}, eyeColor: "#2ecc71", skinColor: "#ffb6c1", calicoSpots: [], whiteSpots: [],
+                        isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
+                    };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "ee1", W: "ww", S: "ss", C: "cc", H: "hh", T: "Tt" };
-                let kantaEma = {
-                    id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
-                    tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
-                    isAlbino: false, isMelanistic: false, luonne: "Utelias", realGenotype: naarasG,
-                    paljastetutGeenit: {}, eyeColor: "#3498db", skinColor: "#ffc0cb", calicoSpots: [], whiteSpots: [],
-                    isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
-                };
+                    let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww", S: "ss", C: "cc", H: "hh" };
+                    let kantaEma = {
+                        id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
+                        tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
+                        isAlbino: false, isMelanistic: false, luonne: "Utelias", realGenotype: naarasG,
+                        paljastetutGeenit: {}, eyeColor: "#3498db", skinColor: "#ffc0cb", calicoSpots: [], whiteSpots: [],
+                        isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
+                    };
 
-                lauma.push(kantaUros, kantaEma);
+                    lauma = [kantaUros, kantaEma];
+                }
+                
+                loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
+                lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
+
+                arvoPaivittaisetTehtavat();
+                if (haasteet.length === 0) arvoPaivittaisetHaasteet();
+                arvoKaupanValikoima();
+                paivitaKaikkiUI();
+                kaynnistaSatunnaisLiikkeet();
+
+            } catch(e) {
+                alert("Virhe pelin latauksessa: " + e.message);
             }
-            
-            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], T: [] };
-            lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
-
-            arvoPaivittaisetTehtavat();
-            if (haasteet.length === 0) arvoPaivittaisetHaasteet();
-            arvoKaupanValikoima();
-            paivitaKaikkiUI();
-            kaynnistaSatunnaisLiikkeet();
         }
 
         window.onload = () => { lataaKuvat(() => lataaPeli()); };
