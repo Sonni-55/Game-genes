@@ -456,15 +456,41 @@
         let kaikkiKuvatLadattu = false;
         const kuviaYhteensa = Object.keys(kuvaTiedostot).length;
 
-        function lataaKuvat(callback) {
-            for (let avain in kuvaTiedostot) {
+                function lataaKuvat(callback) {
+            let avaimet = Object.keys(kuvaTiedostot);
+            if (avaimet.length === 0) { callback(); return; }
+            
+            let valmiit = 0;
+            // Varmistusajastin: jos kuvien latauksessa kestää yli 1.5 sekuntia, peli käynnistetään silti!
+            let turvaTimer = setTimeout(() => {
+                console.warn("Kuvien lataus kesti liian kauan, käynnistetään peli silti.");
+                callback();
+            }, 1500);
+
+            avaimet.forEach(avain => {
                 kuvat[avain] = new Image();
                 kuvat[avain].src = kuvaTiedostot[avain];
-                kuvat[avain].onload = () => {
-                    ladatutKuvat++;
-                    if (ladatutKuvat === kuviaYhteensa) {
+                let tarkistus = () => {
+                    valmiit++;
+                    if (valmiit === avaimet.length) {
+                        clearTimeout(turvaTimer);
                         kaikkiKuvatLadattu = true;
                         callback();
+                    }
+                };
+                kuvat[avain].onload = tarkistus;
+                kuvat[avain].onerror = tarkistus; // Jatketaan vaikka yksittäinen kuva puuttuisi
+            });
+        }
+
+        // Käynnistetään peli heti, eikä jäädä odottelemaan jumiin
+        window.onload = () => {
+            lataaPeli(); // Luo heti kantaeläimet, päivittää UI:n ja herättää napit eloon
+            lataaKuvat(() => {
+                paivitaKaikkiUI(); // Päivittää vielä kuvat, kun ne latautuvat taustalla
+            });
+        };
+
                     }
                 };
             }
