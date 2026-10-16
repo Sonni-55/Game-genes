@@ -485,13 +485,14 @@
         const geenitMaaritykset = {
             B: { nimi: "Lokus B (Musta / Ruskea / Kaneli)", kaikki: ["B", "b", "b1"], tyyppi: "yksittainen", kuvaus: "Määrittää perusvärit." },
             O: { nimi: "Lokus O (Oranssi / Kerma)", kaikki: ["O", "o"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa oranssiin ja kermanvaaleaan." },
-            N: { nimi: "Lokus N (Kuvion tyyppi)", kaikki: ["NN", "Nn", "nn"], tyyppi: "pari", kuvaus: "NN = Perusväri, Nn = Kilpikonnakuvio, nn = Oranssilokus." },
+            N: { nimi: "Lokus N (Näytä-geeni)", kaikki: ["NN", "Nn", "nn"], tyyppi: "pari", kuvaus: "NN = näyttää B lokuksen värin, Nn = Kilpikonnakuvio, nn = O lokuksen väri." },
             D: { nimi: "Lokus D (Diluutio)", kaikki: ["D", "d"], tyyppi: "yksittainen", kuvaus: "Vaalentaa perusvärejä pastellisävyiksi." },
             E: { nimi: "Lokus E (Korvatyyppi)", kaikki: ["E", "e", "e1"], tyyppi: "yksittainen", kuvaus: "E = Pystykorva, e = Terrieri, e1 = Luppa." },
             W: { nimi: "Lokus W (Valkoiset täplät)", kaikki: ["W", "w"], tyyppi: "yksittainen", kuvaus: "Luo valkoisia täpliä turkkiin." },
             S: { nimi: "Lokus S (Koko)", kaikki: ["S", "s"], tyyppi: "yksittainen", kuvaus: "Määrittää eläimen koon (normaali vs kääpiö)." },
             C: { nimi: "Lokus C (Palautumisaika)", kaikki: ["C", "c"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa emän palautumisaikaan pentueen jälkeen." },
-            H: { nimi: "Lokus H (Metabolia / Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." }
+            H: { nimi: "Lokus H (Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." }
+            Z: { nimi: "Lokus Z (Epäluonnollinen mutaatio)", kaikki: ["Z", "z"], tyyppi: "yksittainen", kuvaus: "Erittäin harvinainen, eivätkä tutkijat ole koskaan nähneet resessiivistä alleelia." }
         };
 
         let valittuUros = null;
@@ -558,8 +559,8 @@
             koko: [
                 { avain: "kaapio", nimi: "kääpiökokoinen", tarkista: e => e.realGenotype.S === "ss" }
             ],
-            zen: [
-                { avain: "zen", nimi: "zen-geeninen", tarkista: e => e.realGenotype.H === "hh" }
+            iloinen: [
+                { avain: "iloinen", nimi: "tavallista onnellisempi", tarkista: e => e.realGenotype.H === "hh" }
             ]
         };
 
@@ -847,11 +848,17 @@
         }
 
         function arvoKaupanAlleeli(lokus) {
-            let loydetyt = loytyneetAlleelit[lokus] || [];
-            let maaritys = geenitMaaritykset[lokus];
-            if (loydetyt.length > 0 && Math.random() < 0.90) return loydetyt[Math.floor(Math.random() * loydetyt.length)];
-            return maaritys.kaikki[Math.floor(Math.random() * maaritys.kaikki.length)];
-        }
+    let loydetyt = loytyneetAlleelit[lokus] || [];
+    let maaritys = geenitMaaritykset[lokus];
+    
+    if (lokus === 'Z') {
+        // Erittäin harvinainen Z-alleeli kaupassa (pienellä todennäköisyydellä Zz, ei koskaan zz suoraan)
+        return Math.random() < 0.03 ? 'Z' : 'z';
+    }
+
+    if (loydetyt.length > 0 && Math.random() < 0.90) return loydetyt[Math.floor(Math.random() * loydetyt.length)];
+    return maaritys.kaikki[Math.floor(Math.random() * maaritys.kaikki.length)];
+}
 
         function arvoKaupanValikoima() {
             let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
@@ -1746,7 +1753,7 @@
             let ladatutHaasteet = JSON.parse(localStorage.getItem("laji_haasteet_v53") || '[]');
             haasteet = ladatutHaasteet.map(h => palautaHaasteFunktio(h));
 
-            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
+            let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], Z: [] };
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
 
             arvoPaivittaisetTehtavat();
