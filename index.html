@@ -195,7 +195,12 @@
     </style>
 </head>
 <body>
+    <!-- Virheiden näyttölaatikko puhelimelle -->
+    <div id="virhe-laatikko" style="background: #e74c3c; color: white; padding: 10px; margin-bottom: 10px; border-radius: 5px; display: none; font-size: 12px; word-break: break-all;">
+        <b>⚠️ Virhe havaittu:</b> <span id="virhe-teksti"></span>
+    </div>
 
+    
     <div class="top-bar">
         <div class="tabs">
             <button class="tab-btn active" onclick="vaihdaSivua('lab-sivu', event)">🔬 Labra</button>
@@ -399,9 +404,13 @@
     </div>
 
         <script>
-                    // Virheiden sieppaus ruudulle testauksen ajaksi
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            alert("⚠️ Koodivirhe havaittu!\n\nViesti: " + msg + "\nRivi: " + lineNo);
+                window.onerror = function(msg, url, lineNo, columnNo, error) {
+            let box = document.getElementById("virhe-laatikko");
+            let text = document.getElementById("virhe-teksti");
+            if (box && text) {
+                box.style.display = "block";
+                text.innerText = msg + " (Rivi: " + lineNo + ")";
+            }
             return false;
         };
 
