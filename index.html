@@ -399,6 +399,12 @@
     </div>
 
         <script>
+                    // Virheiden sieppaus ruudulle testauksen ajaksi
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            alert("⚠️ Koodivirhe havaittu!\n\nViesti: " + msg + "\nRivi: " + lineNo);
+            return false;
+        };
+
         const kuvat = {};
         const kuvaTiedostot = {
             hanta_viivat: "Untitled322_20261013221346.png",
