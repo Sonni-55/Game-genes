@@ -478,7 +478,7 @@
         let kauppaUros = null;
         let kauppaNaaras = null;
 
-        let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
+        let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], Z: [] };
         let uudetAlleelitIlmoitus = {};
 
         const luonteet = ["Rauhallinen", "Vilkas", "Ujo", "Utelias"];
@@ -491,7 +491,7 @@
             W: { nimi: "Lokus W (Valkoiset täplät)", kaikki: ["W", "w"], tyyppi: "yksittainen", kuvaus: "Luo valkoisia täpliä turkkiin." },
             S: { nimi: "Lokus S (Koko)", kaikki: ["S", "s"], tyyppi: "yksittainen", kuvaus: "Määrittää eläimen koon (normaali vs kääpiö)." },
             C: { nimi: "Lokus C (Palautumisaika)", kaikki: ["C", "c"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa emän palautumisaikaan pentueen jälkeen." },
-            H: { nimi: "Lokus H (Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." }
+            H: { nimi: "Lokus H (Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." },
             Z: { nimi: "Lokus Z (Epäluonnollinen mutaatio)", kaikki: ["Z", "z"], tyyppi: "yksittainen", kuvaus: "Erittäin harvinainen, eivätkä tutkijat ole koskaan nähneet resessiivistä alleelia." }
         };
 
@@ -565,7 +565,7 @@
         };
 
         function luoSatunnainenKasvatusTehtava() {
-            const kategoriat = ["vari", "korvat", "kuvio", "koko", "zen"];
+            const kategoriat = ["vari", "korvat", "kuvio", "koko", "iloinen"];
             const valittuKategoria = kategoriat[Math.floor(Math.random() * kategoriat.length)];
             const lista = tehtavaOminaisuudet[valittuKategoria];
             const valittuOminaisuus = lista[Math.floor(Math.random() * lista.length)];
@@ -583,7 +583,7 @@
         }
 
         function luoSatunnainenHaaste() {
-            const kats = ["vari", "korvat", "kuvio", "koko", "zen"].sort(() => 0.5 - Math.random());
+            const kats = ["vari", "korvat", "kuvio", "koko", "iloinen"].sort(() => 0.5 - Math.random());
             const o1 = tehtavaOminaisuudet[kats[0]][Math.floor(Math.random() * tehtavaOminaisuudet[kats[0]].length)];
             const o2 = tehtavaOminaisuudet[kats[1]][Math.floor(Math.random() * tehtavaOminaisuudet[kats[1]].length)];
 
@@ -840,7 +840,7 @@
         function laskeElaimenHinta(elain) {
             let hinta = 50;
             let fenotyyppi = haeFenotyyppiGeenit(elain);
-            let resessiivisetOsuudet = fenotyyppi.split(" ").filter(p => p.includes("bb") || p.includes("b1b1") || p.includes("oo") || p.includes("nn") || p.includes("dd") || p.includes("ee") || p.includes("e1e1") || p.includes("ss") || p.includes("cc") || p.includes("hh"));
+            let resessiivisetOsuudet = fenotyyppi.split(" ").filter(p => p.includes("bb") || p.includes("b1b1") || p.includes("oo") || p.includes("nn") || p.includes("dd") || p.includes("ee") || p.includes("e1e1") || p.includes("ss") || p.includes("cc") || p.includes("hh") || p.includes("zz"));
             hinta += resessiivisetOsuudet.length * 50;
             if (elain.isAlbino || elain.isMelanistic) hinta += 150;
             if (elain.onnellisuus >= 80) hinta = Math.round(hinta * 1.20);
@@ -848,24 +848,23 @@
         }
 
         function arvoKaupanAlleeli(lokus) {
-    let loydetyt = loytyneetAlleelit[lokus] || [];
-    let maaritys = geenitMaaritykset[lokus];
-    
-    if (lokus === 'Z') {
-        // Erittäin harvinainen Z-alleeli kaupassa (pienellä todennäköisyydellä Zz, ei koskaan zz suoraan)
-        return Math.random() < 0.03 ? 'Z' : 'z';
-    }
+            let loydetyt = loytyneetAlleelit[lokus] || [];
+            let maaritys = geenitMaaritykset[lokus];
+            
+            if (lokus === 'Z') {
+                return Math.random() < 0.03 ? 'Z' : 'z';
+            }
 
-    if (loydetyt.length > 0 && Math.random() < 0.90) return loydetyt[Math.floor(Math.random() * loydetyt.length)];
-    return maaritys.kaikki[Math.floor(Math.random() * maaritys.kaikki.length)];
-}
+            if (loydetyt.length > 0 && Math.random() < 0.90) return loydetyt[Math.floor(Math.random() * loydetyt.length)];
+            return maaritys.kaikki[Math.floor(Math.random() * maaritys.kaikki.length)];
+        }
 
         function arvoKaupanValikoima() {
-            let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
+            let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H'), Z: arvoKaupanAlleeli('Z') + arvoKaupanAlleeli('Z') };
             kauppaUros = luoOlento("Tuonti-Uros", "♂", gU, gU, "aikuinen", 4);
             kauppaUros.hinta = laskeElaimenHinta(kauppaUros);
 
-            let gN = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: Math.random() < 0.5 ? "nn" : "Nn", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
+            let gN = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: Math.random() < 0.5 ? "nn" : "Nn", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H'), Z: arvoKaupanAlleeli('Z') + arvoKaupanAlleeli('Z') };
             kauppaNaaras = luoOlento("Tuonti-Naaras", "♀", gN, gN, "aikuinen", 4);
             kauppaNaaras.hinta = laskeElaimenHinta(kauppaNaaras);
         }
@@ -1009,7 +1008,7 @@
         }
 
         const satunnaisetSilmavarit = ["#2ecc71", "#3498db", "#e74c3c", "#f1c40f", "#9b59b6", "#e67e22"];
-        const satunnaisetIhovarit = ["#ffb6c1", "#ffc0cb", "#d87093", "#cd5c5c", "#bc8f8f", "#e0ac69"];
+        const satunnaisetIhovarit = ["#ffb6c1", "#ffc0cb", "#d87093", "#cd5c5c", "#bc8f8f", "#e0ac69", "#D77B5F", "#BC7576", "#C14C32", "#E1CFCA", "#FFDDDD", "#F97676", "#3E2C23"];
 
         function luoOlento(nimi, sukupuoli, isag, emag, ika, ikaPaivat = 0, isaObj = null, emaObj = null) {
             let realG = {
@@ -1021,7 +1020,8 @@
                 W: periydytaLokus(isag.W || "ww", emag.W || "ww"),
                 S: periydytaPari(isag.S || "SS", emag.S || "SS"),
                 C: periydytaPari(isag.C || "CC", emag.C || "CC"),
-                H: periydytaPari(isag.H || "HH", emag.H || "HH")
+                H: periydytaPari(isag.H || "HH", emag.H || "HH"),
+                Z: periydytaLokus(isag.Z || "Zz", emag.Z || "Zz")
             };
 
             let calicoSpots = [];
@@ -1078,7 +1078,8 @@
         function haeFenotyyppiGeenit(elain) {
             let tunnetut = haeTunnetutGeenit(elain);
             let mutaatioTeksti = elain.isAlbino ? " [ALBINO]" : (elain.isMelanistic ? " [MELANISTINEN]" : "");
-            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W} S:${tunnetut.S} C:${tunnetut.C} H:${tunnetut.H}${mutaatioTeksti}`;
+            let zMutaatioTeksti = elain.realGenotype.Z === "zz" ? " [EPÄLUONNOLLINEN MUTAATIO]" : "";
+            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W} S:${tunnetut.S} C:${tunnetut.C} H:${tunnetut.H} Z:${tunnetut.Z}${mutaatioTeksti}${zMutaatioTeksti}`;
         }
 
         function haeTunnetutGeenit(elain) {
@@ -1118,8 +1119,12 @@
             let sOsa = (g.S === "ss") ? "ss" : "S_";
             let cOsa = (g.C === "cc") ? "cc" : "C_";
             let hOsa = (g.H === "hh") ? "hh" : "H_";
+            
+            let zOsa = "Z_";
+            if (g.Z === "zz") zOsa = "zz";
+            else if (g.Z === "Zz" || g.Z === "zZ") zOsa = "Z?";
 
-            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa };
+            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa, Z: zOsa };
         }
 
         function paatteleVanhempienGeenit(pentu, isa, ema) {
@@ -1683,10 +1688,13 @@
                     return onkoLoytynyt ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`;
                 }).join("");
 
+                let lisatietoZ = (lokus === 'Z') ? `<p style="font-size:11px; color:#f1c40f; margin-top:4px;">Toisen alleelin olemassaolo on vahvistettu, mutta sitä ei ole koskaan nähty!</p>` : "";
+
                 card.innerHTML = `
                     ${badgeHtml}
                     <h3 style="margin-bottom:5px;">${info.nimi}</h3>
                     <p style="font-size: 12px; color: #aaa; margin-top:0;">${info.kuvaus}</p>
+                    ${lisatietoZ}
                     <p style="margin-top: 8px; font-size:12px;"><b>Löydetyt alleelit:</b><br>${alleelitHtml}</p>
                 `;
                 alue.appendChild(card);
@@ -1722,7 +1730,7 @@
             }
             
             if (!lauma || lauma.length === 0) {
-                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "Dd", E: "Ee", W: "ww", S: "Ss", C: "CC", H: "Hh" };
+                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "Dd", E: "Ee", W: "ww", S: "Ss", C: "CC", H: "Hh", Z: "Zz" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1731,7 +1739,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "DD", E: "ee1", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "DD", E: "ee1", W: "ww", S: "Ss", C: "Cc", H: "Hh", Z: "Zz" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1753,7 +1761,7 @@
             let ladatutHaasteet = JSON.parse(localStorage.getItem("laji_haasteet_v53") || '[]');
             haasteet = ladatutHaasteet.map(h => palautaHaasteFunktio(h));
 
-            let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], Z: [] };
+            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], Z: [] };
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
 
             arvoPaivittaisetTehtavat();
