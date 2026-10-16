@@ -195,7 +195,6 @@
     </style>
 </head>
 <body>
-    <!-- Virheiden näyttölaatikko -->
     <div id="virhe-laatikko" style="background: #e74c3c; color: white; padding: 10px; margin-bottom: 10px; border-radius: 5px; display: none; font-size: 12px; word-break: break-all;">
         <b>⚠️ Virhe havaittu:</b> <span id="virhe-teksti"></span>
     </div>
@@ -591,12 +590,34 @@
 
             return {
                 id: id,
+                o1Avain: o1.avain,
+                o2Avain: o2.avain,
                 kuvaus: `Asiakastilaus: ${o1.nimi} ja ${o2.nimi} eläin!`,
                 raha: 280 + Math.floor(Math.random() * 150),
                 xp: 40 + Math.floor(Math.random() * 20),
                 lunastettu: false,
-                tarkista: () => lauma.some(e => o1.tarkista(e) && o2.tarkista(e))
+                tarkista: function() { return lauma.some(e => o1.tarkista(e) && o2.tarkista(e)); }
             };
+        }
+
+        function palautaHaasteFunktio(h) {
+            let kaikkio = Object.values(tehtavaOminaisuudet).flat();
+            let o1 = kaikkio.find(x => x.avain === h.o1Avain);
+            let o2 = kaikkio.find(x => x.avain === h.o2Avain);
+            if (o1 && o2) {
+                h.tarkista = function() { return lauma.some(e => o1.tarkista(e) && o2.tarkista(e)); };
+            } else {
+                h.tarkista = function() {
+                    let osat = h.kuvaus.replace("Asiakastilaus: ", "").split(" ja ");
+                    if (osat.length < 2) return false;
+                    let o1Nimi = osat[0].trim();
+                    let o2Nimi = osat[1].replace(" eläin!", "").trim();
+                    let t1 = kaikkio.find(x => x.nimi === o1Nimi);
+                    let t2 = kaikkio.find(x => x.nimi === o2Nimi);
+                    return t1 && t2 && lauma.some(e => t1.tarkista(e) && t2.tarkista(e));
+                };
+            }
+            return h;
         }
 
         const perusTehtavaPohjat = [
@@ -706,7 +727,7 @@
             }
 
             paivittaisetTehtavat.forEach((t, idx) => {
-                let valmis = t.tarkista();
+                let valmis = typeof t.tarkista === 'function' ? t.tarkista() : false;
                 let card = document.createElement("div");
                 card.className = "quest-card" + (t.lunastettu ? " completed" : "");
                 
@@ -720,7 +741,7 @@
 
         function lunastaTehtava(idx) {
             let t = paivittaisetTehtavat[idx];
-            if (t && t.tarkista() && !t.lunastettu) {
+            if (t && typeof t.tarkista === 'function' && t.tarkista() && !t.lunastettu) {
                 t.lunastettu = true;
                 raha += t.raha;
                 lisaaXP(t.xp);
@@ -741,7 +762,7 @@
             }
 
             haasteet.forEach((h, idx) => {
-                let valmis = h.tarkista();
+                let valmis = typeof h.tarkista === 'function' ? h.tarkista() : false;
                 let card = document.createElement("div");
                 card.className = "quest-card" + (h.lunastettu ? " completed" : "");
 
@@ -758,14 +779,16 @@
         function avaaHaasteenToimitus(idx) {
             valittuHaasteIdx = idx;
             let h = haasteet[idx];
+            let kaikkio = Object.values(tehtavaOminaisuudet).flat();
+
             let sopivatElaimet = lauma.filter(e => {
                 let osat = h.kuvaus.replace("Asiakastilaus: ", "").split(" ja ");
                 if (osat.length < 2) return false;
                 let o1Nimi = osat[0].trim();
                 let o2Nimi = osat[1].replace(" eläin!", "").trim();
 
-                let t1 = Object.values(tehtavaOminaisuudet).flat().find(x => x.nimi === o1Nimi);
-                let t2 = Object.values(tehtavaOminaisuudet).flat().find(x => x.nimi === o2Nimi);
+                let t1 = kaikkio.find(x => x.nimi === o1Nimi);
+                let t2 = kaikkio.find(x => x.nimi === o2Nimi);
 
                 return t1 && t2 && t1.tarkista(e) && t2.tarkista(e);
             });
@@ -1145,20 +1168,20 @@
             paivitaGeenikirjaUI();
             paivitaMerkitUI();
 
-            localStorage.setItem("laji_lauma_v52", JSON.stringify(lauma));
-            localStorage.setItem("laji_raha_v52", raha);
-            localStorage.setItem("laji_xp_v52", xp);
-            localStorage.setItem("laji_taso_v52", taso);
-            localStorage.setItem("laji_geenit_v52", JSON.stringify(loytyneetAlleelit));
-            localStorage.setItem("laji_stats_v52", JSON.stringify(statsTracker));
-            localStorage.setItem("laji_varasto_v52", JSON.stringify(varastoTarvikkeet));
-            localStorage.setItem("laji_max_koko_v52", maxLaumaKoko);
-            localStorage.setItem("laji_haasteet_v52", JSON.stringify(haasteet));
+            localStorage.setItem("laji_lauma_v53", JSON.stringify(lauma));
+            localStorage.setItem("laji_raha_v53", raha);
+            localStorage.setItem("laji_xp_v53", xp);
+            localStorage.setItem("laji_taso_v53", taso);
+            localStorage.setItem("laji_geenit_v53", JSON.stringify(loytyneetAlleelit));
+            localStorage.setItem("laji_stats_v53", JSON.stringify(statsTracker));
+            localStorage.setItem("laji_varasto_v53", JSON.stringify(varastoTarvikkeet));
+            localStorage.setItem("laji_max_koko_v53", maxLaumaKoko);
+            localStorage.setItem("laji_haasteet_v53", JSON.stringify(haasteet));
         }
 
         function paivitaMerkitUI() {
-            document.getElementById("badge-tehtavat").style.display = paivittaisetTehtavat.some(t => t.tarkista() && !t.lunastettu) ? "flex" : "none";
-            document.getElementById("badge-haasteet").style.display = haasteet.some(h => h.tarkista() && !h.lunastettu) ? "flex" : "none";
+            document.getElementById("badge-tehtavat").style.display = paivittaisetTehtavat.some(t => typeof t.tarkista === 'function' && t.tarkista() && !t.lunastettu) ? "flex" : "none";
+            document.getElementById("badge-haasteet").style.display = haasteet.some(h => typeof h.tarkista === 'function' && h.tarkista() && !h.lunastettu) ? "flex" : "none";
             document.getElementById("badge-saavutukset").style.display = saavutukset.some(s => s.tasoIndex < s.rajat.length && s.arvot() >= s.rajat[s.tasoIndex]) ? "flex" : "none";
             document.getElementById("badge-kirjasto").style.display = Object.keys(uudetAlleelitIlmoitus).length > 0 ? "flex" : "none";
         }
@@ -1671,7 +1694,7 @@
         }
 
         function lataaPeli() {
-            let tLauma = localStorage.getItem("laji_lauma_v52");
+            let tLauma = localStorage.getItem("laji_lauma_v53");
             if (tLauma) {
                 try {
                     lauma = JSON.parse(tLauma);
@@ -1690,7 +1713,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "ee1", W: "ww", S: "Ss", C: "CC", H: "Hh" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww", S: "ss", C: "cc", H: "hh" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1702,13 +1725,15 @@
                 lauma = [kantaUros, kantaEma];
             }
 
-            raha = parseInt(localStorage.getItem("laji_raha_v52") || 250);
-            xp = parseInt(localStorage.getItem("laji_xp_v52") || 0);
-            taso = parseInt(localStorage.getItem("laji_taso_v52") || 1);
-            statsTracker = JSON.parse(localStorage.getItem("laji_stats_v52") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
-            varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v52") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
-            maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
-            haasteet = JSON.parse(localStorage.getItem("laji_haasteet_v52") || '[]');
+            raha = parseInt(localStorage.getItem("laji_raha_v53") || 250);
+            xp = parseInt(localStorage.getItem("laji_xp_v53") || 0);
+            taso = parseInt(localStorage.getItem("laji_taso_v53") || 1);
+            statsTracker = JSON.parse(localStorage.getItem("laji_stats_v53") || '{"jalostukset":0,"silitykset":0,"ostetutElaimet":0,"myydytElaimet":0,"ostetutTavarat":0,"kaytetytTavarat":0}');
+            varastoTarvikkeet = JSON.parse(localStorage.getItem("laji_varasto_v53") || '{"sukupuoli_uros":0,"sukupuoli_naaras":0,"tupla_pentue":0}');
+            maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v53") || 8);
+            
+            let ladatutHaasteet = JSON.parse(localStorage.getItem("laji_haasteet_v53") || '[]');
+            haasteet = ladatutHaasteet.map(h => palautaHaasteFunktio(h));
 
             loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
