@@ -1050,8 +1050,19 @@
                 }
             }
 
+            let zColor = (isaObj && isaObj.zColor) || (emaObj && emaObj.zColor) || arvoSatunnainenHex();
+            let zSkinColor = (isaObj && isaObj.zSkinColor) || (emaObj && emaObj.zSkinColor) || arvoSatunnainenHex();
+
+            let skinColor;
+            if (realG.Z === "zz") {
+                skinColor = zSkinColor;
+            } else if (isaObj && emaObj) {
+                skinColor = sekoitaHexVari(isaObj.skinColor, emaObj.skinColor);
+            } else {
+                skinColor = satunnaisetIhovarit[Math.floor(Math.random() * satunnaisetIhovarit.length)];
+            }
+
             let eyeColor = isaObj && emaObj ? sekoitaHexVari(isaObj.eyeColor, emaObj.eyeColor) : arvoSatunnainenHex();
-            let skinColor = isaObj && emaObj ? sekoitaHexVari(isaObj.skinColor, emaObj.skinColor) : satunnaisetIhovarit[Math.floor(Math.random() * satunnaisetIhovarit.length)];
 
             let isAlbino = Math.random() < 0.05;
             let isMelanistic = !isAlbino && Math.random() < 0.05;
@@ -1073,6 +1084,8 @@
                 paljastetutGeenit: {},
                 eyeColor: eyeColor,
                 skinColor: skinColor,
+                zColor: zColor,
+                zSkinColor: zSkinColor,
                 calicoSpots: calicoSpots,
                 whiteSpots: whiteSpots,
                 isaNimi: isaObj ? isaObj.nimi : "Luonto",
@@ -1359,7 +1372,11 @@
                 ihoVari = "#1a1a1a";
                 viivaVari = "#555566";
                 silmaOpacity = 0.5;
+            } else if (g.Z === "zz") {
+                turkinVari = elain.zColor || "#ff00ff";
+                ihoVari = elain.zSkinColor || elain.skinColor || "#00ffff";
             } else {
+                ihoVari = elain.skinColor;
                 if (g.N === "nn") {
                     turkinVari = g.O === "oo" ? "#fef0d9" : "#e67e22";
                     if (g.D === "dd") turkinVari = g.O === "oo" ? "#fff5eb" : "#ffdfba";
@@ -1387,7 +1404,7 @@
                     offCtx.fillStyle = vari;
                     offCtx.fillRect(0, 0, w, h);
 
-                    if (isKeho && g.N === "Nn" && elain.calicoSpots && !elain.isAlbino && !elain.isMelanistic) {
+                    if (isKeho && g.N === "Nn" && elain.calicoSpots && !elain.isAlbino && !elain.isMelanistic && g.Z !== "zz") {
                         offCtx.globalCompositeOperation = "source-atop";
                         offCtx.fillStyle = "#e67e22";
                         elain.calicoSpots.forEach(s => { offCtx.beginPath(); offCtx.arc(s.x, s.y, s.r, 0, Math.PI*2); offCtx.fill(); });
@@ -1751,7 +1768,7 @@
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
                     isAlbino: false, isMelanistic: false, luonne: "Rauhallinen", realGenotype: urosG,
-                    paljastetutGeenit: {}, eyeColor: "#2ecc71", skinColor: "#ffb6c1", calicoSpots: [], whiteSpots: [],
+                    paljastetutGeenit: {}, eyeColor: "#2ecc71", skinColor: "#ffb6c1", zColor: "#ff00ff", zSkinColor: "#00ffff", calicoSpots: [], whiteSpots: [],
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
@@ -1760,7 +1777,7 @@
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
                     isAlbino: false, isMelanistic: false, luonne: "Utelias", realGenotype: naarasG,
-                    paljastetutGeenit: {}, eyeColor: "#3498db", skinColor: "#ffc0cb", calicoSpots: [], whiteSpots: [],
+                    paljastetutGeenit: {}, eyeColor: "#3498db", skinColor: "#ffc0cb", zColor: "#ff00ff", zSkinColor: "#00ffff", calicoSpots: [], whiteSpots: [],
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
@@ -1794,5 +1811,3 @@
             });
         };
 </script>
-</body>
-</html>
