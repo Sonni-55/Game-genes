@@ -226,14 +226,19 @@
         </div>
     </div>
 
-    <div id="asetukset-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="suljeModaalit()">&times;</span>
-            <h3>⚙️ Pelin Asetukset</h3>
-            <p style="font-size: 12px; color: #aaa;">Voit nollata pelitallennuksesi tästä. Tätä toimintoa ei voi peruuttaa!</p>
-            <button class="action-btn" style="background-color: #e74c3c; margin-top: 15px;" onclick="nollaaPeli()">🔄 Nollaa peli ja aloita alusta</button>
+<div id="asetukset-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="suljeModaalit()">&times;</span>
+        <h3>⚙️ Pelin Asetukset</h3>
+        <p style="font-size: 12px; color: #aaa; margin-bottom: 12px;">Voit hallita pelin asetuksia tai nollata tallennuksen.</p>
+        <div style="background: #1a1a24; padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #3a3a52;">
+            <label style="font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="sandbox-toggle" onchange="vaihdaSandboxTila()"> 🛠️ Sandbox (Kaikki geenit auki & korkea mutaatioprosentti)
+            </label>
         </div>
+        <button class="action-btn" style="background-color: #e74c3c;" onclick="nollaaPeli()">🔄 Nollaa peli ja aloita alusta</button>
     </div>
+</div>
 
     <div id="paivanvaihto-modal" class="modal">
         <div class="modal-content" style="text-align: center;">
@@ -465,6 +470,7 @@
         let maxLaumaKoko = 8;
         let omistaakoPentuhuone = false;
         let omistaakoAnalysaattori = false;
+        let sandboxMode = false;
 
         let varastoTarvikkeet = { sukupuoli_uros: 0, sukupuoli_naaras: 0, tupla_pentue: 0 };
         let kaytettavaBuffSukupuoli = null;
@@ -506,8 +512,30 @@
         offscreenCanvas.height = 1361;
         const offCtx = offscreenCanvas.getContext("2d");
 
-        function avaaModal(id) { document.getElementById(id).style.display = "block"; }
+        function avaaModal(id) {
+            if (id === 'asetukset-modal') {
+                let cb = document.getElementById("sandbox-toggle");
+                if (cb) cb.checked = sandboxMode;
+            }
+            document.getElementById(id).style.display = "block";
+        }
         function suljeModaalit() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
+        function vaihdaSandboxTila() {
+            let cb = document.getElementById("sandbox-toggle");
+            sandboxMode = cb ? cb.checked : !sandboxMode;
+            if (sandboxMode) {
+                // Avaa kaikki alleelit geenikirjastoon testauksen helpottamiseksi
+                for (let lokus in geenitMaaritykset) {
+                    loytyneetAlleelit[lokus] = [...geenitMaaritykset[lokus].kaikki];
+                }
+                lisaaIlmoitus("🛠️ Sandbox-tila aktivoitu: Kaikki geenit avattu ja mutaatioprosentit nostettu!");
+            } else {
+                lisaaIlmoitus("🛠️ Sandbox-tila poistettu käytöstä.");
+            }
+            arvoKaupanValikoima();
+            paivitaKaikkiUI();
+        }
 
         function lisaaIlmoitus(teksti) {
             ilmoitukset.unshift(`[${new Date().toLocaleTimeString()}] ${teksti}`);
@@ -852,7 +880,8 @@
             let maaritys = geenitMaaritykset[lokus];
             
             if (lokus === 'Z') {
-                return 'Z';
+                let todennakoisyys = sandboxMode ? 0.80 : 0.05;
+                return Math.random() < todennakoisyys ? 'z' : 'Z';
             }
 
             if (loydetyt.length > 0 && Math.random() < 0.90) return loydetyt[Math.floor(Math.random() * loydetyt.length)];
@@ -860,8 +889,9 @@
         }
 
         function arvoKaupanValikoima() {
-            let zArvonta1 = Math.random() < 0.05 ? "Zz" : "ZZ";
-            let zArvonta2 = Math.random() < 0.05 ? "Zz" : "ZZ";
+            let zChance = sandboxMode ? 0.80 : 0.05;
+            let zArvonta1 = Math.random() < zChance ? (Math.random() < 0.3 ? "zz" : "Zz") : "ZZ";
+            let zArvonta2 = Math.random() < zChance ? (Math.random() < 0.3 ? "zz" : "Zz") : "ZZ";
 
             let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H'), Z: zArvonta1 };
             kauppaUros = luoOlento("Tuonti-Uros", "♂", gU, gU, "aikuinen", 4);
@@ -954,12 +984,19 @@
         }
 
         function tarkistaJaLisaaAlleelit(elain) {
+            if (sandboxMode) {
+                for (let lokus in geenitMaaritykset) {
+                    loytyneetAlleelit[lokus] = [...geenitMaaritykset[lokus].kaikki];
+                }
+                return;
+            }
+
             let tunnetut = haeTunnetutGeenit(elain);
             for (let lokus in geenitMaaritykset) {
                 let arvo = tunnetut[lokus];
                 if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
 
-                if (arvo && arvo !== "__") {
+                if (arvo && arvo !== "__" && arvo !== "Z?" && arvo !== "C_") {
                     if (geenitMaaritykset[lokus].tyyppi === 'pari') {
                         if (!loytyneetAlleelit[lokus].includes(arvo)) {
                             loytyneetAlleelit[lokus].push(arvo);
@@ -970,7 +1007,7 @@
                     } else {
                         for (let i = 0; i < arvo.length; i++) {
                             let char = arvo[i];
-                            if (char !== '_' && !loytyneetAlleelit[lokus].includes(char)) {
+                            if (char !== '_' && char !== '?' && !loytyneetAlleelit[lokus].includes(char)) {
                                 loytyneetAlleelit[lokus].push(char);
                                 uudetAlleelitIlmoitus[lokus] = true;
                                 elain.uusiGeeniHuomio = true;
@@ -1064,8 +1101,9 @@
 
             let eyeColor = isaObj && emaObj ? sekoitaHexVari(isaObj.eyeColor, emaObj.eyeColor) : arvoSatunnainenHex();
 
-            let isAlbino = Math.random() < 0.05;
-            let isMelanistic = !isAlbino && Math.random() < 0.05;
+            let mutaatioChance = sandboxMode ? 0.90 : 0.05;
+            let isAlbino = Math.random() < mutaatioChance;
+            let isMelanistic = !isAlbino && Math.random() < mutaatioChance;
 
             let uusi = {
                 id: Date.now() + Math.floor(Math.random() * 10000),
@@ -1106,7 +1144,7 @@
         }
 
         function haeTunnetutGeenit(elain) {
-            if (omistaakoAnalysaattori) return elain.realGenotype;
+            if (omistaakoAnalysaattori || sandboxMode) return elain.realGenotype;
             let g = elain.realGenotype;
             let paljastetut = elain.paljastetutGeenit || {};
 
@@ -1130,9 +1168,15 @@
             if (paljastetut.E) {
                 eOsa = paljastetut.E;
             } else {
-                if (g.E === "e1e1") eOsa = "e1e1";
-                else if (g.E === "ee") eOsa = "ee";
-                else eOsa = "E_";
+                let onkoTerrieri = (g.E === "ee" || g.E === "ee1" || g.E === "e1e");
+                let onkoLuppa = (g.E === "e1e1");
+                if (onkoLuppa) {
+                    eOsa = "e1e1";
+                } else if (onkoTerrieri) {
+                    eOsa = g.E; // Paljastaa rehellisesti terrierigenotyypin (ee tai ee1), koska se näkyy ulkonäössä
+                } else {
+                    eOsa = "E_";
+                }
             }
 
             let wOsa = "ww";
@@ -1163,7 +1207,7 @@
                 if (pg.E === "e1e1" && vg.E.includes("e1")) {
                     v.paljastetutGeenit.E = vg.E;
                     muutos = true;
-                } else if (pg.E === "ee" && vg.E.includes("e") && !vg.E.includes("e1")) {
+                } else if ((pg.E === "ee" || pg.E === "ee1" || pg.E === "e1e") && vg.E.includes("e")) {
                     v.paljastetutGeenit.E = vg.E;
                     muutos = true;
                 }
@@ -1717,7 +1761,7 @@
                 let badgeHtml = uudetAlleelitIlmoitus[lokus] ? `<div class="codex-badge">!</div>` : "";
 
                 let alleelitHtml = info.kaikki.map(al => {
-                    let onkoLoytynyt = loydetyt.includes(al);
+                    let onkoLoytynyt = sandboxMode || loydetyt.includes(al);
                     return onkoLoytynyt ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`;
                 }).join("");
 
@@ -1811,3 +1855,5 @@
             });
         };
 </script>
+</body>
+</html>
