@@ -1745,7 +1745,33 @@
             });
         }
 
-         function lataaPeli() {
+            function lataaKuvat(callback) {
+            let avaimet = Object.keys(kuvaTiedostot);
+            if (avaimet.length === 0) { callback(); return; }
+            
+            let valmiit = 0;
+            let turvaTimer = setTimeout(() => {
+                kaikkiKuvatLadattu = true;
+                callback();
+            }, 1500);
+
+            avaimet.forEach(avain => {
+                kuvat[avain] = new Image();
+                kuvat[avain].src = kuvaTiedostot[avain];
+                let tarkistus = () => {
+                    valmiit++;
+                    if (valmiit === avaimet.length) {
+                        clearTimeout(turvaTimer);
+                        kaikkiKuvatLadattu = true;
+                        callback();
+                    }
+                };
+                kuvat[avain].onload = tarkistus;
+                kuvat[avain].onerror = tarkistus;
+            });
+        }
+
+        function lataaPeli() {
             let tLauma = localStorage.getItem("laji_lauma_v52");
             if (tLauma) {
                 try {
@@ -1755,9 +1781,8 @@
                 }
             }
             
-            // Jos tallennettu lauma on tyhjä (tai sitä ei ole), luodaan kantaeläimet aina!
             if (!lauma || lauma.length === 0) {
-                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
+                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh", T: "TT" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1766,7 +1791,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww", S: "ss", C: "cc", H: "hh" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "ee1", W: "ww", S: "Ss", C: "CC", H: "hh", T: "Tt" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1786,7 +1811,7 @@
             maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
             haasteet = JSON.parse(localStorage.getItem("laji_haasteet_v52") || '[]');
 
-            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
+            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], T: [] };
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
 
             arvoPaivittaisetTehtavat();
@@ -1795,6 +1820,14 @@
             paivitaKaikkiUI();
             kaynnistaSatunnaisLiikkeet();
         }
+
+        // Käynnistetään heti, ja päivitetään kuvat kun ne ovat latautuneet taustalla
+        window.onload = () => {
+            lataaPeli();
+            lataaKuvat(() => {
+                paivitaKaikkiUI();
+            });
+        };
 
     </script>
 </body>
