@@ -1796,8 +1796,14 @@
                 alert("Virhe pelin latauksessa: " + e.message);
             }
         }
+            window.onload = () => {
+    localStorage.clear(); // Tyhjentää vanhan muistin kerran
+    lataaPeli();
+    lataaKuvat(() => {
+        paivitaKaikkiUI();
+    });
+};
 
-        window.onload = () => { lataaKuvat(() => lataaPeli()); };
     </script>
 </body>
 </html>
