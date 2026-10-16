@@ -339,7 +339,7 @@
     <!-- SIVU 4: HAASTEET -->
     <div id="haasteet-sivu" class="page">
         <h2>🎯 Asiakastilaukset & Haasteet</h2>
-        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Toimita tilauksia asiakkaille tai poista tilaus. Uusia tulee tilalle seuraavana päivänä!</p>
+        <p style="font-size:12px; color:#aaa; margin-bottom:15px;">Toimita tilauksia asiakkaille tai poista tilaus. Uusia tulee tilalle seuraavana päivänä! ☀️</p>
         <div class="quest-list" id="haasteet-alue"></div>
     </div>
 
@@ -582,7 +582,7 @@
         }
 
         function luoSatunnainenHaaste() {
-            const kats = ["korvat", "kuvio", "koko", "zen"].sort(() => 0.5 - Math.random());
+            const kats = ["vari", "korvat", "kuvio", "koko", "zen"].sort(() => 0.5 - Math.random());
             const o1 = tehtavaOminaisuudet[kats[0]][Math.floor(Math.random() * tehtavaOminaisuudet[kats[0]].length)];
             const o2 = tehtavaOminaisuudet[kats[1]][Math.floor(Math.random() * tehtavaOminaisuudet[kats[1]].length)];
 
@@ -592,6 +592,8 @@
                 id: id,
                 o1Avain: o1.avain,
                 o2Avain: o2.avain,
+                o1Kat: kats[0],
+                o2Kat: kats[1],
                 kuvaus: `Asiakastilaus: ${o1.nimi} ja ${o2.nimi} eläin!`,
                 raha: 280 + Math.floor(Math.random() * 150),
                 xp: 40 + Math.floor(Math.random() * 20),
@@ -949,13 +951,22 @@
                 if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
 
                 if (arvo && arvo !== "__") {
-                    for (let i = 0; i < arvo.length; i++) {
-                        let char = arvo[i];
-                        if (char !== '_' && !loytyneetAlleelit[lokus].includes(char)) {
-                            loytyneetAlleelit[lokus].push(char);
+                    if (geenitMaaritykset[lokus].tyyppi === 'pari') {
+                        if (!loytyneetAlleelit[lokus].includes(arvo)) {
+                            loytyneetAlleelit[lokus].push(arvo);
                             uudetAlleelitIlmoitus[lokus] = true;
                             elain.uusiGeeniHuomio = true;
-                            lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+                            lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${arvo}!`);
+                        }
+                    } else {
+                        for (let i = 0; i < arvo.length; i++) {
+                            let char = arvo[i];
+                            if (char !== '_' && !loytyneetAlleelit[lokus].includes(char)) {
+                                loytyneetAlleelit[lokus].push(char);
+                                uudetAlleelitIlmoitus[lokus] = true;
+                                elain.uusiGeeniHuomio = true;
+                                lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+                            }
                         }
                     }
                 }
@@ -980,18 +991,18 @@
         }
 
         function sekoitaHexVari(hex1, hex2) {
-            if (!hex1) hex1 = "#2ecc71";
-            if (!hex2) hex2 = "#3498db";
+            if (!hex1) hex1 = "#ffb6c1";
+            if (!hex2) hex2 = "#ffc0cb";
             let c1 = parseInt(hex1.replace('#',''), 16);
             let c2 = parseInt(hex2.replace('#',''), 16);
-            let r = Math.round(((((c1 >> 16) & 0xff) + ((c2 >> 16) & 0xff)) / 2) + (Math.random() * 30 - 15));
-            let g = Math.round(((((c1 >> 8) & 0xff) + ((c2 >> 8) & 0xff)) / 2) + (Math.random() * 30 - 15));
-            let b = Math.round((((c1 & 0xff) + (c2 & 0xff)) / 2) + (Math.random() * 30 - 15));
+            let r = Math.min(255, Math.max(150, Math.round(((((c1 >> 16) & 0xff) + ((c2 >> 16) & 0xff)) / 2) + (Math.random() * 20 - 10))));
+            let g = Math.min(180, Math.max(80, Math.round(((((c1 >> 8) & 0xff) + ((c2 >> 8) & 0xff)) / 2) + (Math.random() * 20 - 10))));
+            let b = Math.min(180, Math.max(80, Math.round((((c1 & 0xff) + (c2 & 0xff)) / 2) + (Math.random() * 20 - 10))));
             return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
         }
 
         const satunnaisetSilmavarit = ["#2ecc71", "#3498db", "#e74c3c", "#f1c40f", "#9b59b6", "#e67e22"];
-        const satunnaisetIhovarit = ["#ffb6c1", "#ffc0cb", "#d87093", "#cd5c5c", "#bc8f8f"];
+        const satunnaisetIhovarit = ["#ffb6c1", "#ffc0cb", "#d87093", "#cd5c5c", "#bc8f8f", "#e0ac69"];
 
         function luoOlento(nimi, sukupuoli, isag, emag, ika, ikaPaivat = 0, isaObj = null, emaObj = null) {
             let realG = {
@@ -1089,8 +1100,8 @@
                 eOsa = paljastetut.E;
             } else {
                 if (g.E === "e1e1") eOsa = "e1e1";
-                else if (g.E === "ee" || g.E.includes("e")) eOsa = "E_";
-                else eOsa = "EE";
+                else if (g.E === "ee") eOsa = "ee";
+                else eOsa = "E_";
             }
 
             let wOsa = "ww";
@@ -1116,7 +1127,7 @@
                 if (pg.E === "e1e1" && vg.E.includes("e1")) {
                     v.paljastetutGeenit.E = vg.E;
                     muutos = true;
-                } else if (pg.E.includes("e") && vg.E.includes("e") && !vg.E.includes("e1")) {
+                } else if (pg.E === "ee" && vg.E.includes("e") && !vg.E.includes("e1")) {
                     v.paljastetutGeenit.E = vg.E;
                     muutos = true;
                 }
@@ -1704,7 +1715,7 @@
             }
             
             if (!lauma || lauma.length === 0) {
-                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
+                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "Dd", E: "Ee", W: "ww", S: "Ss", C: "CC", H: "Hh" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1713,7 +1724,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "e1e1", W: "ww", S: "ss", C: "cc", H: "hh" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "DD", E: "ee1", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
