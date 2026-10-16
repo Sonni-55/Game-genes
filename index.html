@@ -475,7 +475,7 @@
         let kauppaUros = null;
         let kauppaNaaras = null;
 
-        let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
+        let loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], T: [] };
         let uudetAlleelitIlmoitus = {};
 
         const luonteet = ["Rauhallinen", "Vilkas", "Ujo", "Utelias"];
@@ -488,7 +488,8 @@
             W: { nimi: "Lokus W (Valkoiset täplät)", kaikki: ["W", "w"], tyyppi: "yksittainen", kuvaus: "Luo valkoisia täpliä turkkiin." },
             S: { nimi: "Lokus S (Koko)", kaikki: ["S", "s"], tyyppi: "yksittainen", kuvaus: "Määrittää eläimen koon (normaali vs kääpiö)." },
             C: { nimi: "Lokus C (Palautumisaika)", kaikki: ["C", "c"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa emän palautumisaikaan pentueen jälkeen." },
-            H: { nimi: "Lokus H (Metabolia / Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." }
+            H: { nimi: "Lokus H (Metabolia / Onnellisuus)", kaikki: ["H", "h"], tyyppi: "yksittainen", kuvaus: "Vaikuttaa onnellisuuden laskunopeuteen päivittäin." },
+            T: { nimi: "Lokus T (Hännän pituus)", kaikki: ["T", "t"], tyyppi: "yksittainen", kuvaus: "T = Pitkä häntä, t = Töpöhäntä (tt)." }
         };
 
         let valittuUros = null;
@@ -783,7 +784,8 @@
         }
 
         function elainKuvaus(el) {
-            return `${el.nimi} (${el.sukupuoli}) - Fenotyyppi: ${haeFenotyyppiGeenit(el)}`;
+            let lisaTops = (el.realGenotype.T === "tt") ? " [TÖPÖHÄNTÄ]" : "";
+            return `${el.nimi} (${el.sukupuoli})${lisaTops} - Fenotyyppi: ${haeFenotyyppiGeenit(el)}`;
         }
 
         function toteutaHaasteToimitus(elId) {
@@ -810,7 +812,7 @@
         function laskeElaimenHinta(elain) {
             let hinta = 50;
             let fenotyyppi = haeFenotyyppiGeenit(elain);
-            let resessiivisetOsuudet = fenotyyppi.split(" ").filter(p => p.includes("bb") || p.includes("b1b1") || p.includes("oo") || p.includes("nn") || p.includes("dd") || p.includes("ee") || p.includes("e1e1") || p.includes("ss") || p.includes("cc") || p.includes("hh"));
+            let resessiivisetOsuudet = fenotyyppi.split(" ").filter(p => p.includes("bb") || p.includes("b1b1") || p.includes("oo") || p.includes("nn") || p.includes("dd") || p.includes("ee") || p.includes("e1e1") || p.includes("ss") || p.includes("cc") || p.includes("hh") || p.includes("tt"));
             hinta += resessiivisetOsuudet.length * 50;
             if (elain.isAlbino || elain.isMelanistic) hinta += 150;
             if (elain.onnellisuus >= 80) hinta = Math.round(hinta * 1.20);
@@ -825,11 +827,11 @@
         }
 
         function arvoKaupanValikoima() {
-            let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
+            let gU = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: "NN", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H'), T: arvoKaupanAlleeli('T') + arvoKaupanAlleeli('T') };
             kauppaUros = luoOlento("Tuonti-Uros", "♂", gU, gU, "aikuinen", 4);
             kauppaUros.hinta = laskeElaimenHinta(kauppaUros);
 
-            let gN = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: Math.random() < 0.5 ? "nn" : "Nn", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H') };
+            let gN = { B: arvoKaupanAlleeli('B') + arvoKaupanAlleeli('B'), O: arvoKaupanAlleeli('O') + arvoKaupanAlleeli('O'), N: Math.random() < 0.5 ? "nn" : "Nn", D: arvoKaupanAlleeli('D') + arvoKaupanAlleeli('D'), E: arvoKaupanAlleeli('E') + arvoKaupanAlleeli('E'), W: arvoKaupanAlleeli('W') + arvoKaupanAlleeli('W'), S: arvoKaupanAlleeli('S') + arvoKaupanAlleeli('S'), C: arvoKaupanAlleeli('C') + arvoKaupanAlleeli('C'), H: arvoKaupanAlleeli('H') + arvoKaupanAlleeli('H'), T: arvoKaupanAlleeli('T') + arvoKaupanAlleeli('T') };
             kauppaNaaras = luoOlento("Tuonti-Naaras", "♀", gN, gN, "aikuinen", 4);
             kauppaNaaras.hinta = laskeElaimenHinta(kauppaNaaras);
         }
@@ -949,6 +951,7 @@
             if (yhdiste === "sS") yhdiste = "Ss";
             if (yhdiste === "cC") yhdiste = "Cc";
             if (yhdiste === "hH") yhdiste = "Hh";
+            if (yhdiste === "tT") yhdiste = "Tt";
             return yhdiste;
         }
 
@@ -976,7 +979,8 @@
                 W: periydytaLokus(isag.W || "ww", emag.W || "ww"),
                 S: periydytaPari(isag.S || "SS", emag.S || "SS"),
                 C: periydytaPari(isag.C || "CC", emag.C || "CC"),
-                H: periydytaPari(isag.H || "HH", emag.H || "HH")
+                H: periydytaPari(isag.H || "HH", emag.H || "HH"),
+                T: periydytaPari(isag.T || "TT", emag.T || "TT")
             };
 
             let calicoSpots = [];
@@ -997,8 +1001,8 @@
             let eyeColor = isaObj && emaObj ? sekoitaHexVari(isaObj.eyeColor, emaObj.eyeColor) : satunnaisetSilmavarit[Math.floor(Math.random() * satunnaisetSilmavarit.length)];
             let skinColor = isaObj && emaObj ? sekoitaHexVari(isaObj.skinColor, emaObj.skinColor) : satunnaisetIhovarit[Math.floor(Math.random() * satunnaisetIhovarit.length)];
 
-            let isAlbino = Math.random() < 0.015;
-            let isMelanistic = !isAlbino && Math.random() < 0.015;
+            let isAlbino = Math.random() < 0.05;
+            let isMelanistic = !isAlbino && Math.random() < 0.05;
 
             let uusi = {
                 id: Date.now() + Math.floor(Math.random() * 10000),
@@ -1033,7 +1037,7 @@
         function haeFenotyyppiGeenit(elain) {
             let tunnetut = haeTunnetutGeenit(elain);
             let mutaatioTeksti = elain.isAlbino ? " [ALBINO]" : (elain.isMelanistic ? " [MELANISTINEN]" : "");
-            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W} S:${tunnetut.S} C:${tunnetut.C} H:${tunnetut.H}${mutaatioTeksti}`;
+            return `B:${tunnetut.B} O:${tunnetut.O} N:${tunnetut.N} D:${tunnetut.D} E:${tunnetut.E} W:${tunnetut.W} S:${tunnetut.S} C:${tunnetut.C} H:${tunnetut.H} T:${tunnetut.T}${mutaatioTeksti}`;
         }
 
         function haeTunnetutGeenit(elain) {
@@ -1073,8 +1077,9 @@
             let sOsa = (g.S === "ss") ? "ss" : "S_";
             let cOsa = (g.C === "cc") ? "cc" : "C_";
             let hOsa = (g.H === "hh") ? "hh" : "H_";
+            let tOsa = (g.T === "tt") ? "tt" : "T_";
 
-            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa };
+            return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa, T: tOsa };
         }
 
         function paatteleVanhempienGeenit(pentu, isa, ema) {
@@ -1371,7 +1376,9 @@
                 ctx.translate(ox + w * 0.78, oy + h * 0.55);
                 ctx.rotate(hantaKulma);
                 ctx.translate(-(ox + w * 0.78), -(oy + h * 0.55));
-                piirraOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
+                if (g.T !== "tt") {
+                    piirraOsa(kuvat.hanta_vari, kuvat.hanta_viivat, turkinVari);
+                }
                 ctx.restore();
             }
 
@@ -1444,10 +1451,41 @@
         }
 
         function avaaSukupuu(id, event) {
-            event.stopPropagation();
+            if (event) event.stopPropagation();
             let elain = lauma.find(e => e.id === id);
+            if (!elain) return;
+
             document.getElementById("sukupuu-otsikko").innerText = `Sukupuu: ${elain.nimi}`;
-            document.getElementById("sukupuu-sisalto").innerHTML = `Isä: ${elain.isaNimi} | Emä: ${elain.emaNimi}`;
+
+            let isa = lauma.find(e => e.id === elain.isaId);
+            let ema = lauma.find(e => e.id === elain.emaId);
+
+            let isanIsa = isa ? lauma.find(e => e.id === isa.isaId) : null;
+            let isanEma = isa ? lauma.find(e => e.id === isa.emaId) : null;
+            let emanIsa = ema ? lauma.find(e => e.id === ema.isaId) : null;
+            let emanEma = ema ? lauma.find(e => e.id === ema.emaId) : null;
+
+            let sisaltoHtml = `
+                <div style="text-align: center; font-size: 13px; line-height: 1.6;">
+                    <h3 style="color: #f1c40f; margin-bottom: 10px;">${elain.nimi} (${elain.sukupuoli})</h3>
+                    <p style="color: #aaa; font-size: 11px;">Fenotyyppi: ${haeFenotyyppiGeenit(elain)}</p>
+                    
+                    <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
+                    
+                    <div style="display: flex; justify-content: space-around; gap: 10px;">
+                        <div style="flex: 1; background: #1a1a24; padding: 10px; border-radius: 6px;">
+                            <b style="color: #3498db;">Isä:</b><br>
+                            ${isa ? `${isa.nimi}<br><span style="font-size:10px; color:#888;">Isän isä: ${isanIsa ? isanIsa.nimi : 'Tuntematon'}</span><br><span style="font-size:10px; color:#888;">Isän emä: ${isanEma ? isanEma.nimi : 'Tuntematon'}</span>` : elain.isaNimi}
+                        </div>
+                        <div style="flex: 1; background: #1a1a24; padding: 10px; border-radius: 6px;">
+                            <b style="color: #e74c3c;">Emä:</b><br>
+                            ${ema ? `${ema.nimi}<br><span style="font-size:10px; color:#888;">Emän isä: ${emanIsa ? emanIsa.nimi : 'Tuntematon'}</span><br><span style="font-size:10px; color:#888;">Emän emä: ${emanEma ? emanEma.nimi : 'Tuntematon'}</span>` : elain.emaNimi}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("sukupuu-sisalto").innerHTML = sisaltoHtml;
             avaaModal('sukupuu-modal');
         }
 
@@ -1686,7 +1724,7 @@
                 maxLaumaKoko = parseInt(localStorage.getItem("laji_max_koko_v52") || 8);
                 haasteet = JSON.parse(localStorage.getItem("laji_haasteet_v52") || '[]');
             } else {
-                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh" };
+                let urosG = { B: "Bb1", O: "Oo", N: "NN", D: "DD", E: "Ee", W: "ww", S: "Ss", C: "Cc", H: "Hh", T: "TT" };
                 let kantaUros = {
                     id: 1, nimi: "Kanta-Uros", sukupuoli: "♂", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1695,7 +1733,7 @@
                     isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
                 };
 
-                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "ee1", W: "ww", S: "ss", C: "cc", H: "hh" };
+                let naarasG = { B: "bb1", O: "OO", N: "nn", D: "Dd", E: "ee1", W: "ww", S: "ss", C: "cc", H: "hh", T: "Tt" };
                 let kantaEma = {
                     id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                     tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
@@ -1707,7 +1745,7 @@
                 lauma.push(kantaUros, kantaEma);
             }
             
-            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [] };
+            loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], T: [] };
             lauma.forEach(e => tarkistaJaLisaaAlleelit(e));
 
             arvoPaivittaisetTehtavat();
@@ -1718,6 +1756,6 @@
         }
 
         window.onload = () => { lataaKuvat(() => lataaPeli()); };
-</script>
+    </script>
 </body>
 </html>
