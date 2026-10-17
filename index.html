@@ -404,7 +404,7 @@
         <h2>📖 Geenikirjasto (Codex)</h2>
         <div class="codex-container" id="codex-alue"></div>
     </div>
-
+    
     <script>
     window.onerror = function(msg, url, lineNo, columnNo, error) {
         let box = document.getElementById("virhe-laatikko");
@@ -1222,17 +1222,31 @@
             let muutos = false;
             if (!v.paljastetutGeenit) v.paljastetutGeenit = {};
 
-            if (pg.E === "e1e1") {
-                if (vg.E === "EE") { v.paljastetutGeenit.E = "Ee1"; muutos = true; }
-                else if (vg.E === "Ee") { v.paljastetutGeenit.E = "ee1"; muutos = true; }
-                else if (vg.E === "Ee1") { v.paljastetutGeenit.E = "Ee1"; muutos = true; }
-            } else if (pg.E === "ee") {
-                if (vg.E === "EE") { v.paljastetutGeenit.E = "Ee"; muutos = true; }
-            }
+            for (let lokus in pg) {
+                let pentuAlleelit = getAllelesList(pg[lokus], lokus);
+                let vanhempiAlleelit = getAllelesList(vg[lokus], lokus);
 
-            if (pg.Z === "zz" && vg.Z.includes("Z")) {
-                v.paljastetutGeenit.Z = "Zz";
-                muutos = true;
+                // Jos pennulla on jokin resessiivinen alleeli (esim 'd', 's', 'e1', 'b'), ja vanhemmalla oli vain iso kirjain/dominantti näkyvissä, päivitetään vanhemman paljastettuihin geeneihin heterotsygoottinen tila
+                pentuAlleelit.forEach(pAl => {
+                    if (pAl !== vanhempiAlleelit[0] && pAl !== vanhempiAlleelit[1]) {
+                        // Vanhemman täytyy kantaa tätä alleelia
+                        let uusiLista = [vanhempiAlleelit[0], pAl].sort().join('');
+                        // Varmistetaan järjestys oikeaksi (esim D ja d -> Dd)
+                        if (uusiLista === 'dD') uusiLista = 'Dd';
+                        if (uusiLista === 'sS') uusiLista = 'Ss';
+                        if (uusiLista === 'eE') uusiLista = 'Ee';
+                        if (uusiLista === 'e1E') uusiLista = 'Ee1';
+                        if (uusiLista === 'bB') uusiLista = 'Bb';
+                        if (uusiLista === 'b1B') uusiLista = 'Bb1';
+                        if (uusiLista === 'b1b') uusiLista = 'bb1';
+                        if (uusiLista === 'e1e') uusiLista = 'ee1';
+                        
+                        if (v.paljastetutGeenit[lokus] !== uusiLista) {
+                            v.paljastetutGeenit[lokus] = uusiLista;
+                            muutos = true;
+                        }
+                    }
+                });
             }
 
             if (muutos) {
@@ -1472,7 +1486,7 @@
                     elain.calicoSpots.forEach(s => { offCtx.beginPath(); offCtx.arc(s.x, s.y, s.r, 0, Math.PI*2); offCtx.fill(); });
                 }
 
-                if (isKeho && (g.W === "Ww" || g.W === "WW") && elain.whiteSpots && !elain.isAlbino) {
+                if (isKeho && (g.W === "Ww" || g.W === "WW") && elain.whiteSpots && !elain.isAlbino && !elain.isMelanistic) {
                     offCtx.globalCompositeOperation = "source-atop";
                     if (g.W === "WW") {
                         offCtx.fillStyle = "#ffffff";
