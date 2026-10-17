@@ -572,7 +572,7 @@
 
     const tehtavaOminaisuudet = {
         vari: [
-            { avain: "musta", nimi: "musta", tarkista: e => { let g = haeTunnetutGeenit(e); return g.N !== "nn" && (g.B.includes("B") || g.B === "__"); } },
+            { avain: "musta", nimi: "musta", tarkista: e => { let g = haeTunnetutGeenit(e); return g.N !== "nn" && (g.B.includes("B") || g.B === "__" || g.B === "b_"); } },
             { avain: "ruskea", nimi: "ruskea", tarkista: e => e.realGenotype.B.includes("b") && !e.realGenotype.B.includes("B") },
             { avain: "oranssi", nimi: "oranssi", tarkista: e => e.realGenotype.N === "nn" }
         ],
@@ -1175,6 +1175,7 @@
         if (g.N !== "nn") {
             if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
             else if (g.B === "b1b1") bOsa = "b1b1";
+            else if (g.B.includes("b") || g.B.includes("b1")) bOsa = "b_";
             else bOsa = paljastetut.B ? paljastetut.B : "B_";
         }
 
@@ -1188,23 +1189,22 @@
         let dOsa = (g.D === "dd") ? "dd" : (paljastetut.D ? paljastetut.D : "D_");
 
         let eOsa = "E_";
-        if (paljastetut.E) {
-            eOsa = paljastetut.E;
+        let onkoTerrieri = (g.E === "ee" || g.E === "ee1" || g.E === "e1e");
+        let onkoLuppa = g.E === "e1e1";
+        
+        if (onkoLuppa) {
+            eOsa = "e1e1";
+        } else if (onkoTerrieri) {
+            eOsa = g.E;
+        } else if (g.E.includes("e") || g.E.includes("e1")) {
+            eOsa = "e_";
         } else {
-            let onkoTerrieri = (g.E === "ee" || g.E === "ee1" || g.E === "e1e");
-            let onkoLuppa = (g.E === "e1e1");
-            if (onkoLuppa) {
-                eOsa = "e1e1";
-            } else if (onkoTerrieri) {
-                eOsa = g.E;
-            } else {
-                eOsa = "E_";
-            }
+            eOsa = paljastetut.E ? paljastetut.E : "E_";
         }
 
         let wOsa = "ww";
         if (g.W === "WW") wOsa = "WW";
-        else if (g.W === "Ww" || g.W === "wW") wOsa = paljastetut.W ? paljastetut.W : "W_";
+        else if (g.W.includes("W")) wOsa = paljastetut.W ? paljastetut.W : "W_";
 
         let sOsa = (g.S === "ss") ? "ss" : (paljastetut.S ? paljastetut.S : "S_");
         let cOsa = (g.C === "cc") ? "cc" : (paljastetut.C ? paljastetut.C : "C_");
@@ -1212,8 +1212,7 @@
         
         let zOsa = "Z_";
         if (g.Z === "zz") zOsa = "zz";
-        else if (g.Z === "Zz" || g.Z === "zZ") zOsa = "Z?";
-        else if (paljastetut.Z) zOsa = paljastetut.Z;
+        else if (g.Z.includes("z")) zOsa = "Z?";
 
         return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa, Z: zOsa };
     }
@@ -1254,17 +1253,12 @@
             for (let lokus in pg) {
                 let pVal = pg[lokus];
                 let vVal = vg[lokus];
-                
                 let pAlleles = getAllelesList(pVal, lokus);
                 let vAlleles = getAllelesList(vVal, lokus);
 
-                // If parent is heterozygous (has 2 different alleles)
-                if (vAlleles.length === 2 && vAlleles[0] !== vAlleles[1]) {
-                    // If offspring is homozygous recessive for this locus (e.g., ss, bb, ee, etc.)
-                    // and the parent carries that recessive allele, the parent is proven to be a carrier!
-                    let isHomozygousRecessive = (pAlleles.length === 2 && pAlleles[0] === pAlleles[1] && pAlleles[0] !== vAlleles[0].toUpperCase() && pAlleles[0] !== vAlleles[0]);
-                    
-                    if (isHomozygousRecessive && vAlleles.includes(pAlleles[0])) {
+                if (pAlleles.length === 2 && pAlleles[0] === pAlleles[1]) {
+                    let recAllele = pAlleles[0];
+                    if (vAlleles.includes(recAllele) && vAlleles[0] !== vAlleles[1]) {
                         let pairStr = formatLocusPair(lokus, vAlleles[0], vAlleles[1]);
                         if (v.paljastetutGeenit[lokus] !== pairStr) {
                             v.paljastetutGeenit[lokus] = pairStr;
