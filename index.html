@@ -1218,6 +1218,30 @@
         return { B: bOsa, O: oOsa, N: nOsa, D: dOsa, E: eOsa, W: wOsa, S: sOsa, C: cOsa, H: hOsa, Z: zOsa };
     }
 
+    function formatLocusPair(lokus, a, b) {
+        let arr = [a, b].sort((x, y) => {
+            if (x.length !== y.length) return y.length - x.length;
+            return x.localeCompare(y);
+        });
+        let comb = arr.join('');
+        if (lokus === 'S' || lokus === 'D' || lokus === 'E' || lokus === 'W' || lokus === 'C' || lokus === 'H' || lokus === 'Z' || lokus === 'B' || lokus === 'O' || lokus === 'N') {
+            if (comb === 'dS' || comb === 'Sd') return 'Dd';
+            if (comb === 'sS' || comb === 'Ss') return 'Ss';
+            if (comb === 'eE' || comb === 'Ee') return 'Ee';
+            if (comb === 'e1E' || comb === 'Ee1') return 'Ee1';
+            if (comb === 'bB' || comb === 'Bb') return 'Bb';
+            if (comb === 'b1B' || comb === 'Bb1') return 'Bb1';
+            if (comb === 'b1b' || comb === 'bb1') return 'bb1';
+            if (comb === 'wW' || comb === 'Ww') return 'Ww';
+            if (comb === 'cC' || comb === 'Cc') return 'Cc';
+            if (comb === 'hH' || comb === 'Hh') return 'Hh';
+            if (comb === 'zZ' || comb === 'Zz') return 'Zz';
+            if (comb === 'oO' || comb === 'Oo') return 'Oo';
+            if (comb === 'nN' || comb === 'Nn') return 'Nn';
+        }
+        return comb;
+    }
+
     function paatteleVanhempienGeenit(pentu, isa, ema) {
         if (!isa || !ema) return;
         let pg = pentu.realGenotype;
@@ -1228,26 +1252,26 @@
             if (!v.paljastetutGeenit) v.paljastetutGeenit = {};
 
             for (let lokus in pg) {
-                let pentuAlleelit = getAllelesList(pg[lokus], lokus);
-                let vanhempiAlleelit = getAllelesList(vg[lokus], lokus);
+                let pVal = pg[lokus];
+                let vVal = vg[lokus];
+                
+                let pAlleles = getAllelesList(pVal, lokus);
+                let vAlleles = getAllelesList(vVal, lokus);
 
-                pentuAlleelit.forEach(pAl => {
-                    if (vanhempiAlleelit.includes(pAl)) {
-                        let toinen = vanhempiAlleelit[0] === pAl ? vanhempiAlleelit[1] : vanhempiAlleelit[0];
-                        if (toinen && toinen !== vanhempiAlleelit[0]) {
-                            let yhdiste = [pAl, toinen].sort().join('');
-                            if (yhdiste === 'dD') yhdiste = 'Dd';
-                            if (yhdiste === 'sS') yhdiste = 'Ss';
-                            if (yhdiste === 'eE') yhdiste = 'Ee';
-                            if (yhdiste === 'e1E') yhdiste = 'Ee1';
-                            if (yhdiste === 'bB') yhdiste = 'Bb';
-                            if (v.paljastetutGeenit[lokus] !== yhdiste) {
-                                v.paljastetutGeenit[lokus] = yhdiste;
-                                muutos = true;
-                            }
+                // If parent is heterozygous (has 2 different alleles)
+                if (vAlleles.length === 2 && vAlleles[0] !== vAlleles[1]) {
+                    // If offspring is homozygous recessive for this locus (e.g., ss, bb, ee, etc.)
+                    // and the parent carries that recessive allele, the parent is proven to be a carrier!
+                    let isHomozygousRecessive = (pAlleles.length === 2 && pAlleles[0] === pAlleles[1] && pAlleles[0] !== vAlleles[0].toUpperCase() && pAlleles[0] !== vAlleles[0]);
+                    
+                    if (isHomozygousRecessive && vAlleles.includes(pAlleles[0])) {
+                        let pairStr = formatLocusPair(lokus, vAlleles[0], vAlleles[1]);
+                        if (v.paljastetutGeenit[lokus] !== pairStr) {
+                            v.paljastetutGeenit[lokus] = pairStr;
+                            muutos = true;
                         }
                     }
-                });
+                }
             }
 
             if (muutos) {
@@ -1487,16 +1511,15 @@
             ihoVari = elain.zSkinColor || elain.skinColor || "#00ffff";
         } else {
             ihoVari = elain.skinColor;
+            
             if (g.N === "nn") {
-                turkinVari = g.O === "oo" ? "#fef0d9" : "#e67e22";
-                if (g.D === "dd") turkinVari = g.O === "oo" ? "#fff5eb" : "#ffdfba";
-            } else if (g.N === "NN") {
+                turkinVari = (g.O === "oo") ? "#fef0d9" : "#e67e22";
+                if (g.D === "dd") turkinVari = (g.O === "oo") ? "#fff5eb" : "#ffdfba";
+            } else {
                 if (g.B === "b1b1") turkinVari = "#d27d2d";
                 else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") turkinVari = "#8b5a2b";
                 else turkinVari = "#222222";
-                if (g.D === "dd") turkinVari = "#778899";
-            } else {
-                turkinVari = (g.B === "bb" || g.B === "b1b" || g.B === "bb1") ? "#8b5a2b" : "#222222";
+                
                 if (g.D === "dd") turkinVari = "#778899";
             }
         }
@@ -1827,7 +1850,7 @@
             let badgeHtml = uudetAlleelitIlmoitus[lokus] ? `<div class="codex-badge">!</div>` : "";
 
             let alleelitHtml = info.kaikki.map(al => {
-                let onkoLoytynyt = sandboxMode || loydetyt.includes(al) || al.split('').every(c => loydetyt.includes(c));
+                let onkoLoytynyt = sandboxMode || loydetyt.includes(al);
                 return onkoLoytynyt ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`;
             }).join("");
 
