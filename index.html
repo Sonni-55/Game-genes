@@ -471,6 +471,8 @@
     let omistaakoPentuhuone = false;
     let omistaakoAnalysaattori = false;
     let sandboxMode = false;
+    let laumaSivu = 0;
+    const laumaSivuKoko = 4;
 
     let varastoTarvikkeet = { sukupuoli_uros: 0, sukupuoli_naaras: 0, tupla_pentue: 0 };
     let kaytettavaBuffSukupuoli = null;
@@ -705,7 +707,9 @@
 
     function alustaSaavutukset() {
         if (saavutukset.length === 0) {
-            saavutukset = pohjaSaavutukset.map(s => ({ ...s, tasoIndex: 0 }));
+            let tallennetutTasot = {};
+            try { tallennetutTasot = JSON.parse(localStorage.getItem("laji_saavutukset_v53") || "{}"); } catch(e){}
+            saavutukset = pohjaSaavutukset.map(s => ({ ...s, tasoIndex: tallennetutTasot[s.id] || 0 }));
         }
     }
 
@@ -925,7 +929,8 @@
             setTimeout(() => piirraElainKankaalle(item.elain, `shop-elain-${idx}`, item.tyyppi === 'uros'), 20);
         });
 
-        document.getElementById("max-paikat-naytto").innerText = maxLaumaKoko;
+        let elem = document.getElementById("max-paikat-naytto");
+        if (elem) elem.innerText = maxLaumaKoko;
         document.getElementById("shop-inv-s-uros").innerText = varastoTarvikkeet.sukupuoli_uros;
         document.getElementById("shop-inv-s-naaras").innerText = varastoTarvikkeet.sukupuoli_naaras;
         document.getElementById("shop-inv-tupla").innerText = varastoTarvikkeet.tupla_pentue;
@@ -1170,17 +1175,17 @@
         if (g.N !== "nn") {
             if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
             else if (g.B === "b1b1") bOsa = "b1b1";
-            else bOsa = "B_";
+            else bOsa = paljastetut.B ? paljastetut.B : "B_";
         }
 
         let oOsa = "__";
         if (g.N === "nn" || g.N === "Nn") {
             if (g.O === "oo") oOsa = "oo";
-            else oOsa = "O_";
+            else oOsa = paljastetut.O ? paljastetut.O : "O_";
         }
 
         let nOsa = g.N;
-        let dOsa = (g.D === "dd") ? "dd" : "D_";
+        let dOsa = (g.D === "dd") ? "dd" : (paljastetut.D ? paljastetut.D : "D_");
 
         let eOsa = "E_";
         if (paljastetut.E) {
@@ -1199,11 +1204,11 @@
 
         let wOsa = "ww";
         if (g.W === "WW") wOsa = "WW";
-        else if (g.W === "Ww" || g.W === "wW") wOsa = "W_";
+        else if (g.W === "Ww" || g.W === "wW") wOsa = paljastetut.W ? paljastetut.W : "W_";
 
-        let sOsa = (g.S === "ss") ? "ss" : "S_";
-        let cOsa = (g.C === "cc") ? "cc" : "C_";
-        let hOsa = (g.H === "hh") ? "hh" : "H_";
+        let sOsa = (g.S === "ss") ? "ss" : (paljastetut.S ? paljastetut.S : "S_");
+        let cOsa = (g.C === "cc") ? "cc" : (paljastetut.C ? paljastetut.C : "C_");
+        let hOsa = (g.H === "hh") ? "hh" : (paljastetut.H ? paljastetut.H : "H_");
         
         let zOsa = "Z_";
         if (g.Z === "zz") zOsa = "zz";
@@ -1226,24 +1231,20 @@
                 let pentuAlleelit = getAllelesList(pg[lokus], lokus);
                 let vanhempiAlleelit = getAllelesList(vg[lokus], lokus);
 
-                // Jos pennulla on jokin resessiivinen alleeli (esim 'd', 's', 'e1', 'b'), ja vanhemmalla oli vain iso kirjain/dominantti näkyvissä, päivitetään vanhemman paljastettuihin geeneihin heterotsygoottinen tila
                 pentuAlleelit.forEach(pAl => {
-                    if (pAl !== vanhempiAlleelit[0] && pAl !== vanhempiAlleelit[1]) {
-                        // Vanhemman täytyy kantaa tätä alleelia
-                        let uusiLista = [vanhempiAlleelit[0], pAl].sort().join('');
-                        // Varmistetaan järjestys oikeaksi (esim D ja d -> Dd)
-                        if (uusiLista === 'dD') uusiLista = 'Dd';
-                        if (uusiLista === 'sS') uusiLista = 'Ss';
-                        if (uusiLista === 'eE') uusiLista = 'Ee';
-                        if (uusiLista === 'e1E') uusiLista = 'Ee1';
-                        if (uusiLista === 'bB') uusiLista = 'Bb';
-                        if (uusiLista === 'b1B') uusiLista = 'Bb1';
-                        if (uusiLista === 'b1b') uusiLista = 'bb1';
-                        if (uusiLista === 'e1e') uusiLista = 'ee1';
-                        
-                        if (v.paljastetutGeenit[lokus] !== uusiLista) {
-                            v.paljastetutGeenit[lokus] = uusiLista;
-                            muutos = true;
+                    if (vanhempiAlleelit.includes(pAl)) {
+                        let toinen = vanhempiAlleelit[0] === pAl ? vanhempiAlleelit[1] : vanhempiAlleelit[0];
+                        if (toinen && toinen !== vanhempiAlleelit[0]) {
+                            let yhdiste = [pAl, toinen].sort().join('');
+                            if (yhdiste === 'dD') yhdiste = 'Dd';
+                            if (yhdiste === 'sS') yhdiste = 'Ss';
+                            if (yhdiste === 'eE') yhdiste = 'Ee';
+                            if (yhdiste === 'e1E') yhdiste = 'Ee1';
+                            if (yhdiste === 'bB') yhdiste = 'Bb';
+                            if (v.paljastetutGeenit[lokus] !== yhdiste) {
+                                v.paljastetutGeenit[lokus] = yhdiste;
+                                muutos = true;
+                            }
                         }
                     }
                 });
@@ -1285,6 +1286,9 @@
         document.getElementById("pelaaja-lvl").innerText = taso;
         document.getElementById("pelaaja-xp").innerText = xp % 100;
         
+        let maxElem = document.getElementById("lauma-max");
+        if (maxElem) maxElem.innerText = maxLaumaKoko;
+
         alustaSaavutukset();
 
         paivitaLaumaUI();
@@ -1305,6 +1309,10 @@
         localStorage.setItem("laji_varasto_v53", JSON.stringify(varastoTarvikkeet));
         localStorage.setItem("laji_max_koko_v53", maxLaumaKoko);
         localStorage.setItem("laji_haasteet_v53", JSON.stringify(haasteet));
+        
+        let sData = {};
+        saavutukset.forEach(s => sData[s.id] = s.tasoIndex);
+        localStorage.setItem("laji_saavutukset_v53", JSON.stringify(sData));
     }
 
     function paivitaMerkitUI() {
@@ -1321,7 +1329,25 @@
         alue.innerHTML = "";
         document.getElementById("lauma-maara").innerText = lauma.length;
 
-        lauma.forEach(elain => {
+        let maxSivut = Math.max(1, Math.ceil(lauma.length / laumaSivuKoko));
+        if (laumaSivu >= maxSivut) laumaSivu = maxSivut - 1;
+
+        let sivuOhjain = document.getElementById("lauma-sivutus-ohjain");
+        if (!sivuOhjain) {
+            sivuOhjain = document.createElement("div");
+            sivuOhjain.id = "lauma-sivutus-ohjain";
+            sivuOhjain.style.cssText = "display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:12px; width:100%;";
+            alue.parentNode.insertBefore(sivuOhjain, alue);
+        }
+        sivuOhjain.innerHTML = `
+            <button class="notif-btn" onclick="vaihdaLaumaSivua(-1)">◄</button>
+            <span style="font-size:13px; font-weight:bold;">Sivu ${laumaSivu + 1} / ${maxSivut}</span>
+            <button class="notif-btn" onclick="vaihdaLaumaSivua(1)">►</button>
+        `;
+
+        let naytettavat = lauma.slice(laumaSivu * laumaSivuKoko, (laumaSivu + 1) * laumaSivuKoko);
+
+        naytettavat.forEach(elain => {
             const kortti = document.createElement("div");
             kortti.className = "elain-kortti" + (aukiOlevatIdt.includes(String(elain.id)) ? " auki" : "");
             kortti.dataset.id = elain.id;
@@ -1360,6 +1386,14 @@
             alue.appendChild(kortti);
             piirraElainKankaalle(elain, `canvas-kortti-${elain.id}`, false);
         });
+    }
+
+    function vaihdaLaumaSivua(suunta) {
+        let maxSivut = Math.max(1, Math.ceil(lauma.length / laumaSivuKoko));
+        laumaSivu += suunta;
+        if (laumaSivu < 0) laumaSivu = 0;
+        if (laumaSivu >= maxSivut) laumaSivu = maxSivut - 1;
+        paivitaLaumaUI();
     }
 
     function silitaElain(id, event) {
@@ -1793,7 +1827,7 @@
             let badgeHtml = uudetAlleelitIlmoitus[lokus] ? `<div class="codex-badge">!</div>` : "";
 
             let alleelitHtml = info.kaikki.map(al => {
-                let onkoLoytynyt = sandboxMode || loydetyt.includes(al);
+                let onkoLoytynyt = sandboxMode || loydetyt.includes(al) || al.split('').every(c => loydetyt.includes(c));
                 return onkoLoytynyt ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`;
             }).join("");
 
@@ -1848,7 +1882,7 @@
                 isaNimi: "Luonto", emaNimi: "Luonto", isaId: null, emaId: null, uusiGeeniHuomio: false
             };
 
-            let naarasG = { B: "bb1", O: "OO", N: "nn", D: "DD", E: "e1e1", W: "ww", S: "Ss", C: "Cc", H: "Hh", Z: "ZZ" };
+            let naarasG = { B: "bb1", O: "OO", N: "nn", D: "DD", E: "ee1", W: "ww", S: "Ss", C: "Cc", H: "Hh", Z: "ZZ" };
             let kantaEma = {
                 id: 2, nimi: "Kanta-Emä", sukupuoli: "♀", ika: "aikuinen", ikaPaivat: 4,
                 tiineysPaivat: 0, palautumisPaivat: 0, onnellisuus: 80, silitettyTanaan: false,
