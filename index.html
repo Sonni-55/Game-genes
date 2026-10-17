@@ -999,23 +999,47 @@
                         lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${arvo}!`);
                     }
                 } else {
-                    for (let i = 0; i < arvo.length; i++) {
-                        let char = arvo[i];
+                    let alleelitListassa = getAllelesList(arvo, lokus);
+                    alleelitListassa.forEach(char => {
                         if (char !== '_' && char !== '?' && !loytyneetAlleelit[lokus].includes(char)) {
                             loytyneetAlleelit[lokus].push(char);
                             uudetAlleelitIlmoitus[lokus] = true;
                             elain.uusiGeeniHuomio = true;
                             lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
                         }
-                    }
+                    });
                 }
             }
         }
     }
 
-    function periydytaLokus(isaAlleelit, emaAlleelit) {
-        let iAlleeli = isaAlleelit[Math.floor(Math.random() * isaAlleelit.length)];
-        let eAlleeli = emaAlleelit[Math.floor(Math.random() * emaAlleelit.length)];
+    function getAllelesList(str, lokus) {
+        let kaikki = geenitMaaritykset[lokus] ? [...geenitMaaritykset[lokus].kaikki].sort((a,b) => b.length - a.length) : ["E", "e", "e1"];
+        let result = [];
+        let remaining = str;
+        while (remaining.length > 0) {
+            let found = false;
+            for (let al of kaikki) {
+                if (remaining.startsWith(al)) {
+                    result.push(al);
+                    remaining = remaining.slice(al.length);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                result.push(remaining[0]);
+                remaining = remaining.slice(1);
+            }
+        }
+        return result;
+    }
+
+    function periydytaLokus(lokus, isaAlleelitStr, emaAlleelitStr) {
+        let isaArr = getAllelesList(isaAlleelitStr, lokus);
+        let emaArr = getAllelesList(emaAlleelitStr, lokus);
+        let iAlleeli = isaArr[Math.floor(Math.random() * isaArr.length)];
+        let eAlleeli = emaArr[Math.floor(Math.random() * emaArr.length)];
         return iAlleeli + eAlleeli;
     }
 
@@ -1054,16 +1078,16 @@
 
     function luoOlento(nimi, sukupuoli, isag, emag, ika, ikaPaivat = 0, isaObj = null, emaObj = null) {
         let realG = {
-            B: periydytaLokus(isag.B || "Bb", emag.B || "Bb"),
-            O: periydytaLokus(isag.O || "OO", emag.O || "OO"),
+            B: periydytaLokus('B', isag.B || "Bb", emag.B || "Bb"),
+            O: periydytaLokus('O', isag.O || "OO", emag.O || "OO"),
             N: periydytaPari(isag.N || "NN", emag.N || "NN"),
-            D: periydytaLokus(isag.D || "Dd", emag.D || "Dd"),
-            E: periydytaLokus(isag.E || "EE", emag.E || "EE"),
-            W: periydytaLokus(isag.W || "ww", emag.W || "ww"),
+            D: periydytaLokus('D', isag.D || "Dd", emag.D || "Dd"),
+            E: periydytaLokus('E', isag.E || "EE", emag.E || "EE"),
+            W: periydytaLokus('W', isag.W || "ww", emag.W || "ww"),
             S: periydytaPari(isag.S || "SS", emag.S || "SS"),
             C: periydytaPari(isag.C || "CC", emag.C || "CC"),
-            H: periydytaPari(isag.H || "HH", emag.H || "HH"),
-            Z: periydytaLokus(isag.Z || "ZZ", emag.Z || "ZZ")
+            H: periydytaLokus('H', isag.H || "HH", emag.H || "HH"),
+            Z: periydytaLokus('Z', isag.Z || "ZZ", emag.Z || "ZZ")
         };
 
         let calicoSpots = [];
@@ -1198,21 +1222,6 @@
             let muutos = false;
             if (!v.paljastetutGeenit) v.paljastetutGeenit = {};
 
-            // Tarkistetaan kaikki lokukset, jos pennulta löytyy resessiivinen alleeli, jota vanhemman genotyypissä ei vielä tiedetä tai se on heterotsygoottinen
-            for (let lokus in pg) {
-                let pentuAlleelit = pg[lokus];
-                let vanhempiAlleelit = vg[lokus];
-
-                // Esim. jos pennulla on homotsygoottinen resessiivinen (esim "ee", "bb", "ff"), vanhemmilta on täytynyt tulla ainakin yksi kyseinen alleeli
-                for (let i = 0; i < pentuAlleelit.length; i++) {
-                    let char = pentuAlleelit[i];
-                    // Jos vanhemmalla on iso kirjain (dominantti), mutta pentu paljastaa resessiivisen ominaisuuden tai vanhemman geeni on tuntematon
-                    if (!v.paljastetutGeenit[lokus]) {
-                        // Päivitetään paljastettuihin geeneihin vihjeitä
-                    }
-                }
-            }
-
             if (pg.E === "e1e1") {
                 if (vg.E === "EE") { v.paljastetutGeenit.E = "Ee1"; muutos = true; }
                 else if (vg.E === "Ee") { v.paljastetutGeenit.E = "ee1"; muutos = true; }
@@ -1224,15 +1233,6 @@
             if (pg.Z === "zz" && vg.Z.includes("Z")) {
                 v.paljastetutGeenit.Z = "Zz";
                 muutos = true;
-            }
-
-            // Yleinen päättely kaikille geeneille: jos pentu on perinyt resessiivisen ja vanhemmalla oli vain oletettu dominantti, päivitetään tieto
-            let uusiGen = "";
-            let muuttunutGeeni = false;
-            for (let l in vg) {
-                let vanhaArvo = vg[l];
-                // Jos pentu kantaa resessiivistä, jota vanhemman fenotyypissä ei näy
-                muuttunutGeeni = true;
             }
 
             if (muutos) {
