@@ -526,14 +526,9 @@
     function vaihdaSandboxTila() {
         let cb = document.getElementById("sandbox-toggle");
         sandboxMode = cb ? cb.checked : !sandboxMode;
-        if (sandboxMode) {
-            lisaaIlmoitus("🛠️ Sandbox-tila aktivoitu: Mutaatioprosentit nostettu!");
-        } else {
-            lisaaIlmoitus("🛠️ Sandbox-tila poistettu käytöstä.");
-        }
-        paivitaKaikkiAlleelit();
-        arvoKaupanValikoima();
-        paivitaKaikkiUI();
+        localStorage.clear();
+        alert("🛠️ Sandbox-tila " + (sandboxMode ? "aktivoitu" : "poistettu") + ".\nPeli on nollattu puhtaalta pöydältä.");
+        location.reload();
     }
 
     function lisaaIlmoitus(teksti) {
@@ -987,7 +982,10 @@
             if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
 
             alleelit.forEach(char => {
-                if (char && char !== '_' && char !== '?' && !loytyneetAlleelit[lokus].includes(char)) {
+                let tunnetut = haeTunnetutGeenit(elain);
+                let näkyyköGeeni = omistaakoAnalysaattori || sandboxMode || tunnetut[lokus].includes(char);
+
+                if (char && char !== '_' && char !== '?' && näkyyköGeeni && !loytyneetAlleelit[lokus].includes(char)) {
                     loytyneetAlleelit[lokus].push(char);
                     uudetAlleelitIlmoitus[lokus] = true;
                     elain.uusiGeeniHuomio = true;
