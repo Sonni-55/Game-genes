@@ -1007,85 +1007,19 @@
             return;
         }
 
-        let g = elain.realGenotype;
+        let tunnetut = haeTunnetutGeenit(elain);
 
-        // Lokus B
-        if (g.N !== "nn") {
-            if (g.B.includes("b")) {
-                getAllelesList(g.B, 'B').forEach(ch => {
-                    if (ch === 'b' || ch === 'b1') {
-                        if (g.B === "bb" || g.B === "b1b1" || g.B === "bb1" || g.B === "b1b") {
-                            lisaaAlleeli('B', ch);
-                        }
-                    }
-                });
-            }
-            if (g.B.includes("B") && (!g.B.includes("bb") && g.B !== "b1b1")) {
-                lisaaAlleeli('B', 'B');
-            }
-        }
+        for (let lokus in tunnetut) {
+            let str = tunnetut[lokus];
+            if (!str || str === "__") continue;
 
-        // Lokus O
-        if (g.N === "nn" || g.N === "Nn") {
-            if (g.O === "oo") {
-                lisaaAlleeli('O', 'o');
-            } else if (g.O.includes("O")) {
-                lisaaAlleeli('O', 'O');
-            }
-        }
-
-        // Lokus N
-        getAllelesList(g.N, 'N').forEach(ch => lisaaAlleeli('N', ch));
-
-        // Lokus D
-        if (g.D === "dd") {
-            lisaaAlleeli('D', 'd');
-        } else {
-            lisaaAlleeli('D', 'D');
-        }
-
-        // Lokus E
-        if (g.E === "e1e1") {
-            lisaaAlleeli('E', 'e1');
-        } else if (g.E === "ee") {
-            lisaaAlleeli('E', 'e');
-        } else {
-            lisaaAlleeli('E', 'E');
-        }
-
-        // Lokus W
-        if (g.W === "ww") {
-            lisaaAlleeli('W', 'w');
-        } else {
-            lisaaAlleeli('W', 'W');
-        }
-
-        // Lokus S
-        if (g.S === "ss") {
-            lisaaAlleeli('S', 's');
-        } else {
-            lisaaAlleeli('S', 'S');
-        }
-
-        // Lokus C
-        if (g.C === "cc") {
-            lisaaAlleeli('C', 'c');
-        } else {
-            lisaaAlleeli('C', 'C');
-        }
-
-        // Lokus H
-        if (g.H === "hh") {
-            lisaaAlleeli('H', 'h');
-        } else {
-            lisaaAlleeli('H', 'H');
-        }
-
-        // Lokus Z
-        if (g.Z === "zz") {
-            lisaaAlleeli('Z', 'z');
-        } else {
-            lisaaAlleeli('Z', 'Z');
+            // Avataan geenikirjastoon vain varmat ja fenotyypissä näkyvät alleelit
+            let alleelit = getAllelesList(str, lokus);
+            alleelit.forEach(ch => {
+                if (ch && ch !== '_' && ch !== '?') {
+                    lisaaAlleeli(lokus, ch);
+                }
+            });
         }
     }
 
@@ -1249,10 +1183,15 @@
 
         let bOsa = "__";
         if (g.N !== "nn") {
-            if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") bOsa = "bb";
-            else if (g.B === "b1b1") bOsa = "b1b1";
-            else if (g.B.includes("B")) bOsa = paljastetut.B ? paljastetut.B : "B_";
-            else bOsa = paljastetut.B ? paljastetut.B : "b_";
+            if (g.B === "b1b1") {
+                bOsa = "b1b1"; // Kaneli
+            } else if (g.B === "bb" || g.B === "b1b" || g.B === "bb1") {
+                bOsa = paljastetut.B ? paljastetut.B : "b_"; // Ruskea (kantaa b tai b1)
+            } else if (g.B.includes("B")) {
+                bOsa = paljastetut.B ? paljastetut.B : "B_"; // Musta (dominantti B)
+            } else {
+                bOsa = paljastetut.B ? paljastetut.B : "b_";
+            }
         }
 
         let oOsa = "__";
@@ -1334,6 +1273,7 @@
                 let pVal = pg[lokus];
                 let pAlleles = getAllelesList(pVal, lokus);
                 
+                // Homosygoottinen resessiivinen pentu todistaa vanhempien kantajuuden
                 if (pAlleles.length === 2 && pAlleles[0] === pAlleles[1]) {
                     let recAllele = pAlleles[0];
                     const resessiivisetAlleelit = ['b', 'b1', 'o', 'd', 'e', 'e1', 'w', 's', 'c', 'h', 'z'];
@@ -1935,7 +1875,7 @@
                 return onkoLoytynyt ? `<span class="allele-badge">${al}</span>` : `<span class="allele-badge locked">?</span>`;
             }).join("");
 
-            let lisatietoZ = (lokus === 'Z') ? `<p style="font-size:11px; color:#f1c40f; margin-top:4px;">Toisen alleelin olemassaolo on vahvistettu, mutta sitä ei ole koskaan nähty!</p>` : "";
+            let lisatietoZ = (lokus === 'Z') ? `<p style="font-size:11px; color:#f1c40f; margin-top:4px;">Toisen alleelin olemassaolo on vahvistettu, mutta sitä ei ole koskaan nähto!</p>` : "";
 
             card.innerHTML = `
                 ${badgeHtml}
