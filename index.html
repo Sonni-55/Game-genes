@@ -976,104 +976,22 @@
     }
 
     function tarkistaJaLisaaAlleelit(elain) {
-        let realG = elain.realGenotype;
         if (!loytyneetAlleelit) loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], Z: [] };
+        let tunnetut = haeTunnetutGeenit(elain);
 
-        function lisaaAlleeli(lokus, char) {
-            if (!char || char === '_' || char === '?') return;
-            if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
-            if (!loytyneetAlleelit[lokus].includes(char)) {
-                loytyneetAlleelit[lokus].push(char);
-                uudetAlleelitIlmoitus[lokus] = true;
-                elain.uusiGeeniHuomio = true;
-                lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
-            }
-        }
-
-        if (omistaakoAnalysaattori || sandboxMode) {
-            for (let lokus in realG) {
-                let alleelit = getAllelesList(realG[lokus], lokus);
-                alleelit.forEach(ch => lisaaAlleeli(lokus, ch));
-            }
-            return;
-        }
-
-        let g = realG;
-        
-        if (g.N) {
-            getAllelesList(g.N, 'N').forEach(ch => lisaaAlleeli('N', ch));
-        }
-
-        if (g.N !== "nn" && g.B) {
-            if (g.B === "bb" || g.B === "b1b" || g.B === "bb1" || g.B === "b1b1") {
-                getAllelesList(g.B, 'B').forEach(ch => lisaaAlleeli('B', ch));
-            } else {
-                getAllelesList(g.B, 'B').forEach(ch => { if (ch === 'B') lisaaAlleeli('B', ch); });
-            }
-        }
-
-        if ((g.N === "nn" || g.N === "Nn") && g.O) {
-            if (g.O === "oo") {
-                getAllelesList(g.O, 'O').forEach(ch => lisaaAlleeli('O', ch));
-            } else {
-                getAllelesList(g.O, 'O').forEach(ch => { if (ch === 'O') lisaaAlleeli('O', ch); });
-            }
-        }
-
-        if (g.D) {
-            if (g.D === "dd") {
-                lisaaAlleeli('D', 'd');
-            } else {
-                lisaaAlleeli('D', 'D');
-            }
-        }
-
-        if (g.E) {
-            if (g.E === "ee" || g.E === "e1e1" || g.E === "ee1" || g.E === "e1e") {
-                getAllelesList(g.E, 'E').forEach(ch => lisaaAlleeli('E', ch));
-            } else {
-                getAllelesList(g.E, 'E').forEach(ch => { if (ch === 'E') lisaaAlleeli('E', ch); });
-            }
-        }
-
-        if (g.W) {
-            if (g.W === "ww") {
-                lisaaAlleeli('W', 'w');
-            } else {
-                lisaaAlleeli('W', 'W');
-            }
-        }
-
-        if (g.S) {
-            if (g.S === "ss") {
-                lisaaAlleeli('S', 's');
-            } else {
-                lisaaAlleeli('S', 'S');
-            }
-        }
-
-        if (g.C) {
-            if (g.C === "cc") {
-                lisaaAlleeli('C', 'c');
-            } else {
-                lisaaAlleeli('C', 'C');
-            }
-        }
-
-        if (g.H) {
-            if (g.H === "hh") {
-                lisaaAlleeli('H', 'h');
-            } else {
-                lisaaAlleeli('H', 'H');
-            }
-        }
-
-        if (g.Z) {
-            if (g.Z === "zz") {
-                lisaaAlleeli('Z', 'z');
-            } else {
-                lisaaAlleeli('Z', 'Z');
-            }
+        for (let lokus in tunnetut) {
+            let val = tunnetut[lokus];
+            let alleelit = getAllelesList(val, lokus);
+            alleelit.forEach(char => {
+                if (char && char !== '_' && char !== '?') {
+                    if (!loytyneetAlleelit[lokus].includes(char)) {
+                        loytyneetAlleelit[lokus].push(char);
+                        uudetAlleelitIlmoitus[lokus] = true;
+                        elain.uusiGeeniHuomio = true;
+                        lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+                    }
+                }
+            });
         }
     }
 
@@ -1324,6 +1242,11 @@
                     let recAllele = pAlleles[0];
                     let vAlleles = getAllelesList(vg[lokus], lokus);
                     if (vAlleles.includes(recAllele)) {
+                        let pairStr = formatLocusPair(lokus, vAlleles[0], vAlleles[1]);
+                        if (v.paljastetutGeenit[lokus] !== pairStr && vAlleles[0] !== vAlleles[1]) {
+                            v.paljastetutGeenit[lokus] = pairStr;
+                            muutos = true;
+                        }
                         if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
                         if (!loytyneetAlleelit[lokus].includes(recAllele)) {
                             loytyneetAlleelit[lokus].push(recAllele);
