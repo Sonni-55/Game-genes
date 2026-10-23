@@ -405,7 +405,7 @@
         <div class="codex-container" id="codex-alue"></div>
     </div>
     
-    <script>
+<script>
     window.onerror = function(msg, url, lineNo, columnNo, error) {
         let box = document.getElementById("virhe-laatikko");
         let text = document.getElementById("virhe-teksti");
@@ -525,9 +525,20 @@
 
     function vaihdaSandboxTila() {
         let cb = document.getElementById("sandbox-toggle");
-        sandboxMode = cb ? cb.checked : !sandboxMode;
+        let uusiTila = cb ? cb.checked : !sandboxMode;
+
+        let varoitus = uusiTila 
+            ? "🛠️ Haluatko varmasti kytkeä Sandbox-tilan PÄÄLLE?\n\nTämä poistaa nykyisen peliedistymisesi ja aloittaa pelin alusta sandbox-asetuksilla."
+            : "⚠️ Haluatko varmasti kytkeä Sandbox-tilan POIS PÄÄLTÄ?\n\nTämä nollaa pelin puhtaalta pöydältä normaalitilaan.";
+
+        if (!confirm(varoitus)) {
+            if (cb) cb.checked = sandboxMode;
+            return;
+        }
+
+        sandboxMode = uusiTila;
         localStorage.clear();
-        alert("🛠️ Sandbox-tila " + (sandboxMode ? "aktivoitu" : "poistettu") + ".\nPeli on nollattu puhtaalta pöydältä.");
+        localStorage.setItem("laji_sandbox_v53", sandboxMode ? "true" : "false");
         location.reload();
     }
 
@@ -977,21 +988,104 @@
 
     function tarkistaJaLisaaAlleelit(elain) {
         if (!loytyneetAlleelit) loytyneetAlleelit = { B: [], O: [], N: [], D: [], E: [], W: [], S: [], C: [], H: [], Z: [] };
-        let tunnetut = haeTunnetutGeenit(elain);
 
-        for (let lokus in tunnetut) {
-            let val = tunnetut[lokus];
-            let alleelit = getAllelesList(val, lokus);
-            alleelit.forEach(char => {
-                if (char && char !== '_' && char !== '?') {
-                    if (!loytyneetAlleelit[lokus].includes(char)) {
-                        loytyneetAlleelit[lokus].push(char);
-                        uudetAlleelitIlmoitus[lokus] = true;
-                        elain.uusiGeeniHuomio = true;
-                        lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+        function lisaaAlleeli(lokus, char) {
+            if (!char || char === '_' || char === '?') return;
+            if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
+            if (!loytyneetAlleelit[lokus].includes(char)) {
+                loytyneetAlleelit[lokus].push(char);
+                uudetAlleelitIlmoitus[lokus] = true;
+                elain.uusiGeeniHuomio = true;
+                lisaaIlmoitus(`✨ Uusi geeni Geenikirjastoon: ${lokus}-${char}!`);
+            }
+        }
+
+        if (omistaakoAnalysaattori || sandboxMode) {
+            for (let lokus in elain.realGenotype) {
+                getAllelesList(elain.realGenotype[lokus], lokus).forEach(ch => lisaaAlleeli(lokus, ch));
+            }
+            return;
+        }
+
+        let g = elain.realGenotype;
+
+        // Lokus B
+        if (g.N !== "nn") {
+            if (g.B.includes("b")) {
+                getAllelesList(g.B, 'B').forEach(ch => {
+                    if (ch === 'b' || ch === 'b1') {
+                        if (g.B === "bb" || g.B === "b1b1" || g.B === "bb1" || g.B === "b1b") {
+                            lisaaAlleeli('B', ch);
+                        }
                     }
-                }
-            });
+                });
+            }
+            if (g.B.includes("B") && (!g.B.includes("bb") && g.B !== "b1b1")) {
+                lisaaAlleeli('B', 'B');
+            }
+        }
+
+        // Lokus O
+        if (g.N === "nn" || g.N === "Nn") {
+            if (g.O === "oo") {
+                lisaaAlleeli('O', 'o');
+            } else if (g.O.includes("O")) {
+                lisaaAlleeli('O', 'O');
+            }
+        }
+
+        // Lokus N
+        getAllelesList(g.N, 'N').forEach(ch => lisaaAlleeli('N', ch));
+
+        // Lokus D
+        if (g.D === "dd") {
+            lisaaAlleeli('D', 'd');
+        } else {
+            lisaaAlleeli('D', 'D');
+        }
+
+        // Lokus E
+        if (g.E === "e1e1") {
+            lisaaAlleeli('E', 'e1');
+        } else if (g.E === "ee") {
+            lisaaAlleeli('E', 'e');
+        } else {
+            lisaaAlleeli('E', 'E');
+        }
+
+        // Lokus W
+        if (g.W === "ww") {
+            lisaaAlleeli('W', 'w');
+        } else {
+            lisaaAlleeli('W', 'W');
+        }
+
+        // Lokus S
+        if (g.S === "ss") {
+            lisaaAlleeli('S', 's');
+        } else {
+            lisaaAlleeli('S', 'S');
+        }
+
+        // Lokus C
+        if (g.C === "cc") {
+            lisaaAlleeli('C', 'c');
+        } else {
+            lisaaAlleeli('C', 'C');
+        }
+
+        // Lokus H
+        if (g.H === "hh") {
+            lisaaAlleeli('H', 'h');
+        } else {
+            lisaaAlleeli('H', 'H');
+        }
+
+        // Lokus Z
+        if (g.Z === "zz") {
+            lisaaAlleeli('Z', 'z');
+        } else {
+            lisaaAlleeli('Z', 'Z');
         }
     }
 
@@ -1186,9 +1280,11 @@
         }
 
         let wOsa = "ww";
-        if (g.W === "WW") wOsa = "WW";
-        else if (g.W === "Ww") wOsa = paljastetut.W ? paljastetut.W : "W_";
-        else if (g.W === "ww") wOsa = "ww";
+        if (g.W === "WW" || g.W === "Ww") {
+            wOsa = paljastetut.W ? paljastetut.W : "W_";
+        } else {
+            wOsa = "ww";
+        }
 
         let sOsa = (g.S === "ss") ? "ss" : (paljastetut.S ? paljastetut.S : "S_");
         let cOsa = (g.C === "cc") ? "cc" : (paljastetut.C ? paljastetut.C : "C_");
@@ -1240,18 +1336,16 @@
                 
                 if (pAlleles.length === 2 && pAlleles[0] === pAlleles[1]) {
                     let recAllele = pAlleles[0];
-                    let vAlleles = getAllelesList(vg[lokus], lokus);
-                    if (vAlleles.includes(recAllele)) {
-                        let pairStr = formatLocusPair(lokus, vAlleles[0], vAlleles[1]);
-                        if (v.paljastetutGeenit[lokus] !== pairStr && vAlleles[0] !== vAlleles[1]) {
-                            v.paljastetutGeenit[lokus] = pairStr;
-                            muutos = true;
-                        }
-                        if (!loytyneetAlleelit[lokus]) loytyneetAlleelit[lokus] = [];
-                        if (!loytyneetAlleelit[lokus].includes(recAllele)) {
-                            loytyneetAlleelit[lokus].push(recAllele);
-                            uudetAlleelitIlmoitus[lokus] = true;
-                            muutos = true;
+                    const resessiivisetAlleelit = ['b', 'b1', 'o', 'd', 'e', 'e1', 'w', 's', 'c', 'h', 'z'];
+                    
+                    if (resessiivisetAlleelit.includes(recAllele)) {
+                        let vAlleles = getAllelesList(vg[lokus], lokus);
+                        if (vAlleles.includes(recAllele)) {
+                            let pairStr = formatLocusPair(lokus, vAlleles[0], vAlleles[1]);
+                            if (v.paljastetutGeenit[lokus] !== pairStr && vAlleles[0] !== vAlleles[1]) {
+                                v.paljastetutGeenit[lokus] = pairStr;
+                                muutos = true;
+                            }
                         }
                     }
                 }
@@ -1296,6 +1390,9 @@
         let maxElem = document.getElementById("lauma-max");
         if (maxElem) maxElem.innerText = maxLaumaKoko;
 
+        let cb = document.getElementById("sandbox-toggle");
+        if (cb) cb.checked = sandboxMode;
+
         alustaSaavutukset();
 
         paivitaLaumaUI();
@@ -1316,6 +1413,7 @@
         localStorage.setItem("laji_varasto_v53", JSON.stringify(varastoTarvikkeet));
         localStorage.setItem("laji_max_koko_v53", maxLaumaKoko);
         localStorage.setItem("laji_haasteet_v53", JSON.stringify(haasteet));
+        localStorage.setItem("laji_sandbox_v53", sandboxMode ? "true" : "false");
         
         let sData = {};
         saavutukset.forEach(s => sData[s.id] = s.tasoIndex);
@@ -1869,6 +1967,8 @@
     }
 
     function lataaPeli() {
+        sandboxMode = localStorage.getItem("laji_sandbox_v53") === "true";
+
         let tLauma = localStorage.getItem("laji_lauma_v53");
         if (tLauma) {
             try {
